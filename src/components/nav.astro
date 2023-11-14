@@ -1,0 +1,35 @@
+---
+import { buttonVariants } from "@/components/ui/button";
+import { UserMenu } from "@/components/user-menu";
+import LanguagePicker from "@/components/language-picker";
+
+const { session, t } = Astro.locals;
+---
+
+<div class="py-2 px-4 border-b border-border flex items-center">
+  <div class="mr-4">
+    <h1 class="font-black text-xl">Econo tracker</h1>
+  </div>
+  <nav>
+    <ul class="flex space-x-2 items-center py-1 px-4">
+      <li>
+        <a
+          href={Astro.locals.translatePath("/app")}
+          class={buttonVariants({ size: "sm", variant: "link" })}
+        >
+          {t("nav.home")}
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <div class="ml-auto px-2"><LanguagePicker /></div>
+  {
+    session && (
+      <UserMenu
+        client:idle
+        avatarUrl={session.user.avatarUrl}
+        name={session.user.displayName || session.user.googleSub}
+      />
+    )
+  }
+</div>

@@ -1,0 +1,22 @@
+---
+import App from "@/layouts/app.astro";
+import { Heading } from "@/components/ui/heading";
+
+const { session, t } = Astro.locals;
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+---
+
+<App title={t("pagetitle.app")}>
+  <div class="py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.app")}
+        description=""
+        className="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+    </div>
+  </div>
+</App>

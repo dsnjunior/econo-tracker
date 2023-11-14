@@ -1,0 +1,9 @@
+---
+const acceptLanguage = Astro.request.headers.get("Accept-Language");
+
+if (acceptLanguage && acceptLanguage.startsWith("pt-BR")) {
+  return Astro.redirect("/pt-BR/");
+}
+
+return Astro.redirect("/en/");
+---

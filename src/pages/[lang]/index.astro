@@ -1,0 +1,22 @@
+---
+import Global from "@/layouts/global.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const { session, t } = Astro.locals;
+
+if (session) {
+  return Astro.redirect(Astro.locals.translatePath("/app"));
+}
+---
+
+<Global title={t("pagetitle.home")}>
+  <div class="h-vh flex items-center justify-center">
+    <a
+      href={Astro.locals.translatePath("/auth/google")}
+      class={cn(buttonVariants(), "mt-4")}
+    >
+      {t("login.google")}
+    </a>
+  </div>
+</Global>
