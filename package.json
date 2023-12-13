@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "sst bind astro dev",
+    "dev": "astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
     "preview": "astro preview",
@@ -11,17 +11,13 @@
     "generate": "drizzle-kit generate:pg",
     "drop": "drizzle-kit drop",
     "db:push": "drizzle-kit push:pg",
-    "lint": "prettier --write . --plugin=prettier-plugin-astro",
-    "sst:deploy": "sst deploy",
-    "sst:dev": "sst dev",
-    "deploy": "sst deploy --stage prod"
+    "lint": "prettier --write . --plugin=prettier-plugin-astro"
   },
   "dependencies": {
     "@astrojs/check": "^0.3.1",
-    "@astrojs/react": "^3.0.4",
-    "@astrojs/tailwind": "^5.0.2",
-    "@aws-sdk/client-s3": "^3.449.0",
-    "@aws-sdk/s3-request-presigner": "^3.449.0",
+    "@astrojs/netlify": "^3.1.0",
+    "@astrojs/react": "^3.0.7",
+    "@astrojs/tailwind": "^5.0.3",
     "@lucia-auth/adapter-postgresql": "^2.0.2",
     "@lucia-auth/oauth": "^3.3.1",
     "@paralleldrive/cuid2": "^2.2.2",
@@ -30,7 +26,7 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@types/react": "^18.2.33",
     "@types/react-dom": "^18.2.14",
-    "astro": "^3.4.0",
+    "astro": "^4.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "drizzle-orm": "^0.28.6",
@@ -47,15 +43,11 @@
   },
   "devDependencies": {
     "astro-eslint-parser": "^0.16.0",
-    "astro-sst": "^2.36.1",
-    "aws-cdk-lib": "2.101.1",
     "better-sqlite3": "^9.0.0",
-    "constructs": "10.2.69",
     "dotenv": "^16.3.1",
     "drizzle-kit": "^0.19.13",
     "eslint": "^8.52.0",
     "eslint-plugin-astro": "^0.29.1",
-    "prettier": "^3.0.3",
-    "sst": "^2.36.1"
+    "prettier": "^3.0.3"
   }
 }
