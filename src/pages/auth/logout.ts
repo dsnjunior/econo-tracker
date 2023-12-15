@@ -11,5 +11,9 @@ export const GET: APIRoute = async (context) => {
   }
   await auth.invalidateSession(session.sessionId);
   context.locals.auth.setSession(null);
+  context.locals.posthog.client.capture({
+    event: 'logout',
+    distinctId: context.locals.posthog.distinctId,
+  })
   return context.redirect('/', 302);
 };

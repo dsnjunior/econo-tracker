@@ -59,7 +59,17 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         <DropdownMenuSeparator />
         <div hx-boost="true">
           <DropdownMenuItem asChild className="cursor-pointer">
-            <a href="/auth/logout">
+            <a
+              href="/auth/logout"
+              onClick={
+                () => {
+                  if ('posthog' in window) {
+                    // @ts-ignore
+                    window.posthog.reset();
+                  }
+                }
+              }
+            >
               <LogOut className="w-4 h-4 mr-2" /> Logout
             </a>
           </DropdownMenuItem>

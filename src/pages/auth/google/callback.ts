@@ -19,7 +19,13 @@ export const GET: APIRoute = async (context) => {
 
     const getUser = async () => {
       const existingUser = await getExistingUser();
-      if (existingUser) return existingUser;
+      if (existingUser) {
+        context.locals.posthog.client.capture({
+          event: 'login',
+          distinctId: context.locals.posthog.distinctId,
+        })
+        return existingUser;
+      }
       const user = await createUser({
         attributes: {
           avatar_url: googleUser.picture ?? null,
@@ -27,6 +33,10 @@ export const GET: APIRoute = async (context) => {
           google_sub: googleUser.sub,
         },
       });
+      context.locals.posthog.client.capture({
+        event: 'signup',
+        distinctId: context.locals.posthog.distinctId,
+      })
       return user;
     };
 

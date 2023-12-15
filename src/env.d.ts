@@ -8,6 +8,10 @@ declare namespace App {
     lang: ReturnType<typeof import("./lib/i18n/utils").getLangFromUrl>;
     t: ReturnType<typeof import("./lib/i18n/utils").useTranslations>;
     translatePath: ReturnType<typeof import("./lib/i18n/utils").useTranslatedPath>;
+    posthog: {
+      client: import("posthog-node").PostHog;
+      distinctId: string;
+    }
   }
 }
 
@@ -27,6 +31,8 @@ interface ImportMetaEnv {
   readonly GOOGLE_CLIENT_ID: string;
   readonly GOOGLE_CLIENT_SECRET: string;
   readonly GOOGLE_REDIRECT_URI: string;
+
+  readonly POSTHOG_API_KEY: string;
 }
 
 interface ImportMeta {

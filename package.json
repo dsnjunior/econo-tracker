@@ -33,6 +33,7 @@
     "lucia": "^2.7.2",
     "lucide-react": "^0.289.0",
     "postgres": "^3.4.3",
+    "posthog-node": "^3.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "sharp": "^0.32.6",
