@@ -1,0 +1,25 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+const { earningId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !earningId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+await db
+  .delete(schema.earning)
+  .where(
+    and(
+      eq(schema.earning.id, earningId),
+      eq(schema.earning.userId, session.user.userId),
+    ),
+  );
+
+return Astro.redirect(Astro.locals.translatePath("/app"));
+---

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import type { APIRoute } from "astro";
 
 export const GET: APIRoute = async (context) => {
-  const session = context.locals.session;
+  const session = await context.locals.auth.validate();
   if (!session) {
     return new Response("Unauthorized", {
       status: 401,

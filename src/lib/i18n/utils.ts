@@ -30,3 +30,16 @@ export function useTranslatedPath(lang: keyof typeof ui) {
     return `/${l}${path}`
   }
 }
+
+function getLangFromClient() {
+  if (typeof window === 'undefined') return defaultLang;
+  return getLangFromUrl(new URL(window.location.href));
+}
+
+export function useClientTranslations(lang = getLangFromClient()) {
+  return useTranslations(lang);
+}
+
+export function useClientTranslatedPath(lang = getLangFromClient()) {
+  return useTranslatedPath(lang);
+}

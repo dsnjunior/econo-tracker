@@ -1,0 +1,39 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { fixedExpenseId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !fixedExpenseId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const originalFixedExpense = await db.query.fixedExpense.findFirst({
+  where: and(
+    eq(schema.fixedExpense.id, fixedExpenseId),
+    eq(schema.fixedExpense.userId, session.user.userId),
+  ),
+});
+
+if (!originalFixedExpense) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const [fixedExpense] = await db
+  .insert(schema.fixedExpense)
+  .values({
+    ...originalFixedExpense,
+    id: createId("fixedExpense"),
+    userId: session.user.userId,
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/fixed-expenses/${fixedExpense.id}`),
+);
+---

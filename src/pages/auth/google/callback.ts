@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { OAuthRequestError } from "@lucia-auth/oauth";
 
 import { auth, googleAuth } from "@/lib/auth";
+import { createId } from "@/lib/id";
 
 export const GET: APIRoute = async (context) => {
   const storedState = context.cookies.get("google_oauth_state")?.value;
@@ -27,6 +28,7 @@ export const GET: APIRoute = async (context) => {
         return existingUser;
       }
       const user = await createUser({
+        userId: createId("user"),
         attributes: {
           avatar_url: googleUser.picture ?? null,
           display_name: googleUser.name ?? null,
@@ -44,6 +46,7 @@ export const GET: APIRoute = async (context) => {
     const session = await auth.createSession({
       userId: user.userId,
       attributes: {},
+      sessionId: createId("session"),
     });
     context.locals.auth.setSession(session);
     return context.redirect(`/${lang}/app`, 302);

@@ -1,0 +1,37 @@
+---
+import { BadgePlus } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+import { buttonVariants } from "@/components/ui/button";
+import { InsertDataDialog } from "./insert-data-dialog";
+
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return null;
+}
+---
+
+<InsertDataDialog title={t("insertmodal.title")} client:idle>
+  <div class="space-y-2">
+    <a
+      href={Astro.locals.translatePath("/app/earnings/new")}
+      class={cn(buttonVariants(), "w-full")}
+      data-astro-prefetch="false"
+    >
+      <BadgePlus className="w-4 h-4 mr-2" />
+      {t("insertmodal.earnings")}
+    </a>
+    <a
+      href={Astro.locals.translatePath("/app/expenses/new")}
+      class={cn(buttonVariants(), "w-full")}
+      data-astro-prefetch="false"
+    >
+      <BadgePlus className="w-4 h-4 mr-2" />
+      {t("insertmodal.expenses")}
+    </a>
+  </div>
+</InsertDataDialog>

@@ -1,0 +1,109 @@
+---
+import { Calendar, DollarSign, PiggyBank, Edit, Repeat } from "lucide-react";
+
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+export interface Props {
+  data: {
+    type: "expense" | "income";
+    description: string;
+    amount: number;
+    date: string;
+    timeZone: string;
+    url: string;
+    fixed: boolean;
+    category?: {
+      name: string;
+      color: string;
+    };
+  };
+}
+
+const { lang, t } = Astro.locals;
+const { data } = Astro.props;
+---
+
+<Card
+  className={cn({
+    "border-red-500": data.type === "expense",
+    "border-green-500": data.type === "income",
+  })}
+>
+  <CardHeader>
+    <CardTitle>
+      {data.description}
+    </CardTitle>
+    <div>
+      <Badge style={{ backgroundColor: data.category?.color }}>
+        {data.category?.name}
+      </Badge>
+    </div>
+  </CardHeader>
+  <CardContent>
+    <ul>
+      {
+        !!data.date && (
+          <li class="flex items-center text-sm font-semibold">
+            <Calendar className="w-4 h-4 mr-2" />
+            <span class="sr-only">{t("data.date")}: </span>
+            {Intl.DateTimeFormat(lang, {
+              dateStyle: "long",
+              timeZone: data.timeZone || undefined,
+            }).format(
+              new Date(
+                ...(new Date(data.date)
+                  .toISOString()
+                  .replace("T00:00:00.000Z", "")
+                  .split("-")
+                  .map((v) => parseInt(v)) as [number, number, number]),
+              ),
+            )}
+          </li>
+        )
+      }
+      {
+        !!data.amount && (
+          <li class="flex items-center text-sm font-semibold">
+            {data.type === "income" ? (
+              <PiggyBank className="w-4 h-4 mr-2" />
+            ) : (
+              <DollarSign className="w-4 h-4 mr-2" />
+            )}
+            <span class="sr-only">{t("data.amount")}: </span>
+            {Intl.NumberFormat(lang, {
+              style: "currency",
+              currency: "BRL",
+            }).format(data.amount)}
+          </li>
+        )
+      }
+      {
+        !!data.fixed && (
+          <li class="flex items-center text-sm font-semibold">
+            <Repeat className="w-4 h-4 mr-2" />
+            <span class="sr-only">{t("data.fixed")}: </span>
+            {t("data.fixed")}
+          </li>
+        )
+      }
+    </ul>
+  </CardContent>
+  <CardFooter>
+    <a
+      class={buttonVariants({ size: "sm", variant: "secondary" })}
+      href={data.url}
+    >
+      <Edit className="w-4 h-4 mr-2" />
+      {t("data.edit")}
+    </a>
+  </CardFooter>
+</Card>

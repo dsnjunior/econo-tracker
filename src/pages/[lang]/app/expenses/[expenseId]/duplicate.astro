@@ -1,0 +1,39 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { expenseId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !expenseId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const originalEarning = await db.query.expense.findFirst({
+  where: and(
+    eq(schema.expense.id, expenseId),
+    eq(schema.expense.userId, session.user.userId),
+  ),
+});
+
+if (!originalEarning) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const [expense] = await db
+  .insert(schema.expense)
+  .values({
+    ...originalEarning,
+    id: createId("expense"),
+    userId: session.user.userId,
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/expenses/${expense.id}`),
+);
+---

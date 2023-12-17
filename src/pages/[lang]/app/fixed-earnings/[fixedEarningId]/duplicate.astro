@@ -1,0 +1,39 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { fixedEarningId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !fixedEarningId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const originalFixedEarning = await db.query.fixedEarning.findFirst({
+  where: and(
+    eq(schema.fixedEarning.id, fixedEarningId),
+    eq(schema.fixedEarning.userId, session.user.userId),
+  ),
+});
+
+if (!originalFixedEarning) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const [fixedEarning] = await db
+  .insert(schema.fixedEarning)
+  .values({
+    ...originalFixedEarning,
+    id: createId("fixedEarning"),
+    userId: session.user.userId,
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/fixed-earnings/${fixedEarning.id}`),
+);
+---

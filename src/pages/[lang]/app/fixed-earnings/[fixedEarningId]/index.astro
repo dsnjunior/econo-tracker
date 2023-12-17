@@ -1,0 +1,184 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft, Copy, Trash } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import { Heading } from "@/components/ui/heading";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  FixedEarningForm,
+  fixedEarningForm,
+} from "@/components/forms/fixed-earning-form";
+import { Success } from "@/components/form";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+import { createId } from "@/lib/id";
+
+const { fixedEarningId } = Astro.params;
+const { auth, t, form } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !fixedEarningId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName(
+  "fixedEarningForm",
+  fixedEarningForm,
+);
+
+const fixedEarning = await (async () => {
+  if (formResult?.data) {
+    const result = await db
+      .update(schema.fixedEarning)
+      .set(formResult.data)
+      .where(
+        and(
+          eq(schema.fixedEarning.id, fixedEarningId),
+          eq(schema.fixedEarning.userId, session.user.userId),
+        ),
+      )
+      .returning();
+
+    return result[0];
+  }
+
+  return await db.query.fixedEarning.findFirst({
+    where: and(
+      eq(schema.fixedEarning.id, fixedEarningId),
+      eq(schema.fixedEarning.userId, session.user.userId),
+    ),
+  });
+})();
+
+if (!fixedEarning) {
+  return Astro.redirect(Astro.locals.translatePath("/app"));
+}
+
+await (async () => {
+  if (!formResult?.data) {
+    return;
+  }
+  const { startDate, dueDay, endDate } = fixedEarning;
+
+  const startDateToSet = new Date(startDate);
+  const dueDayToSet = dueDay;
+  const endDateToSet = (() => {
+    if (endDate) {
+      return new Date(endDate);
+    }
+
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + 6);
+    return date;
+  })();
+
+  const months = [];
+  const date = new Date(startDateToSet);
+  date.setDate(dueDayToSet - 1);
+  while (date <= endDateToSet) {
+    months.push(new Date(date));
+    date.setMonth(date.getMonth() + 1);
+  }
+
+  await db
+    .delete(schema.fixedEarningRegister)
+    .where(
+      and(
+        eq(schema.fixedEarningRegister.userId, fixedEarning.userId),
+        eq(schema.fixedEarningRegister.fixedEarningId, fixedEarning.id),
+      ),
+    );
+
+  await db.insert(schema.fixedEarningRegister).values(
+    months.map((month) => ({
+      id: createId("fixedEarningRegister"),
+      amount: fixedEarning.amount,
+      dueDate: month.toISOString(),
+      timeZone: fixedEarning.timeZone,
+      userId: fixedEarning.userId,
+      fixedEarningId: fixedEarning.id,
+    })),
+  );
+})();
+
+const categories = await db.query.earningCategory.findMany({
+  where: eq(schema.earningCategory.userId, session.user.userId),
+});
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading
+          title={t("earnings.form.title")}
+          description={t("earnings.form.description")}
+        />
+        <div
+          class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 md:mt-0"
+        >
+          <a
+            href={Astro.locals.translatePath(
+              `/app/fixed-earnings/${fixedEarningId}/delete`,
+            )}
+            class={buttonVariants({ variant: "destructive", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Trash className="w-4 h-4 mr-2" />
+            {t("earnings.delete")}
+          </a>
+          <a
+            href={Astro.locals.translatePath(
+              `/app/fixed-earnings/${fixedEarningId}/duplicate`,
+            )}
+            class={buttonVariants({ variant: "outline", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            {t("earnings.duplicate")}
+          </a>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href={Astro.locals.translatePath(
+            `/app/fixed-earnings/${fixedEarningId}/fixed`,
+          )}
+          class="flex items-center space-x-2"
+          data-astro-prefetch="false"
+        >
+          <Switch id="fixed" checked />
+          <Label htmlFor="fixed">{t("earnings.fixed")}</Label>
+        </a>
+      </div>
+    </div>
+    <div class="py-4" transition:name="form">
+      {
+        !!formResult?.data && (
+          <Success lang={Astro.locals.lang} className="mb-4" />
+        )
+      }
+      <FixedEarningForm
+        serverErrors={formResult?.fieldErrors}
+        fixedEarning={fixedEarning}
+        categories={categories}
+        client:only
+      />
+    </div>
+  </div>
+</App>

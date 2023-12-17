@@ -1,0 +1,184 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft, Copy, Trash } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import { Heading } from "@/components/ui/heading";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  FixedExpenseForm,
+  fixedExpenseForm,
+} from "@/components/forms/fixed-expense-form";
+import { Success } from "@/components/form";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+import { createId } from "@/lib/id";
+
+const { fixedExpenseId } = Astro.params;
+const { auth, t, form } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !fixedExpenseId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName(
+  "fixedExpenseForm",
+  fixedExpenseForm,
+);
+
+const fixedExpense = await (async () => {
+  if (formResult?.data) {
+    const result = await db
+      .update(schema.fixedExpense)
+      .set(formResult.data)
+      .where(
+        and(
+          eq(schema.fixedExpense.id, fixedExpenseId),
+          eq(schema.fixedExpense.userId, session.user.userId),
+        ),
+      )
+      .returning();
+
+    return result[0];
+  }
+
+  return await db.query.fixedExpense.findFirst({
+    where: and(
+      eq(schema.fixedExpense.id, fixedExpenseId),
+      eq(schema.fixedExpense.userId, session.user.userId),
+    ),
+  });
+})();
+
+if (!fixedExpense) {
+  return Astro.redirect(Astro.locals.translatePath("/app"));
+}
+
+await (async () => {
+  if (!formResult?.data) {
+    return;
+  }
+  const { startDate, dueDay, endDate } = fixedExpense;
+
+  const startDateToSet = new Date(startDate);
+  const dueDayToSet = dueDay;
+  const endDateToSet = (() => {
+    if (endDate) {
+      return new Date(endDate);
+    }
+
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + 6);
+    return date;
+  })();
+
+  const months = [];
+  const date = new Date(startDateToSet);
+  date.setDate(dueDayToSet - 1);
+  while (date <= endDateToSet) {
+    months.push(new Date(date));
+    date.setMonth(date.getMonth() + 1);
+  }
+
+  await db
+    .delete(schema.fixedExpenseRegister)
+    .where(
+      and(
+        eq(schema.fixedExpenseRegister.userId, fixedExpense.userId),
+        eq(schema.fixedExpenseRegister.fixedExpenseId, fixedExpense.id),
+      ),
+    );
+
+  await db.insert(schema.fixedExpenseRegister).values(
+    months.map((month) => ({
+      id: createId("fixedExpenseRegister"),
+      amount: fixedExpense.amount,
+      dueDate: month.toISOString(),
+      timeZone: fixedExpense.timeZone,
+      userId: fixedExpense.userId,
+      fixedExpenseId: fixedExpense.id,
+    })),
+  );
+})();
+
+const categories = await db.query.expenseCategory.findMany({
+  where: eq(schema.expenseCategory.userId, session.user.userId),
+});
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading
+          title={t("expenses.form.title")}
+          description={t("expenses.form.description")}
+        />
+        <div
+          class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 md:mt-0"
+        >
+          <a
+            href={Astro.locals.translatePath(
+              `/app/fixed-expenses/${fixedExpenseId}/delete`,
+            )}
+            class={buttonVariants({ variant: "destructive", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Trash className="w-4 h-4 mr-2" />
+            {t("expenses.delete")}
+          </a>
+          <a
+            href={Astro.locals.translatePath(
+              `/app/fixed-expenses/${fixedExpenseId}/duplicate`,
+            )}
+            class={buttonVariants({ variant: "outline", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            {t("expenses.duplicate")}
+          </a>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href={Astro.locals.translatePath(
+            `/app/fixed-expenses/${fixedExpenseId}/fixed`,
+          )}
+          class="flex items-center space-x-2"
+          data-astro-prefetch="false"
+        >
+          <Switch id="fixed" checked />
+          <Label htmlFor="fixed">{t("expenses.fixed")}</Label>
+        </a>
+      </div>
+    </div>
+    <div class="py-4" transition:name="form">
+      {
+        !!formResult?.data && (
+          <Success lang={Astro.locals.lang} className="mb-4" />
+        )
+      }
+      <FixedExpenseForm
+        serverErrors={formResult?.fieldErrors}
+        fixedExpense={fixedExpense}
+        categories={categories}
+        client:only
+      />
+    </div>
+  </div>
+</App>

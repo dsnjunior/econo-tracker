@@ -57,10 +57,11 @@ export const UserMenu: React.FC<UserMenuProps> = ({
           <p className="text-sm font-medium leading-none">{name}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <div hx-boost="true">
+        <div>
           <DropdownMenuItem asChild className="cursor-pointer">
             <a
               href="/auth/logout"
+              data-astro-prefetch="false"
               onClick={
                 () => {
                   if ('posthog' in window) {

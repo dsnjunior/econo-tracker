@@ -1,0 +1,58 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { fixedExpenseId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !fixedExpenseId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const originalFixedExpense = await db.query.fixedExpense.findFirst({
+  where: and(
+    eq(schema.fixedExpense.id, fixedExpenseId),
+    eq(schema.fixedExpense.userId, session.user.userId),
+  ),
+});
+
+if (!originalFixedExpense) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const id = createId("expense");
+
+await db.insert(schema.expense).values({
+  id,
+  amount: originalFixedExpense.amount,
+  description: originalFixedExpense.description,
+  date: originalFixedExpense.startDate,
+  timeZone: originalFixedExpense.timeZone,
+  userId: session.user.userId,
+  categoryId: originalFixedExpense.categoryId,
+});
+
+await db
+  .delete(schema.fixedExpenseRegister)
+  .where(
+    and(
+      eq(schema.fixedExpenseRegister.fixedExpenseId, fixedExpenseId),
+      eq(schema.fixedExpenseRegister.userId, session.user.userId),
+    ),
+  );
+
+await db
+  .delete(schema.fixedExpense)
+  .where(
+    and(
+      eq(schema.fixedExpense.id, fixedExpenseId),
+      eq(schema.fixedExpense.userId, session.user.userId),
+    ),
+  );
+
+return Astro.redirect(Astro.locals.translatePath(`/app/expenses/${id}`));
+---

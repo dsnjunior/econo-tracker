@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 const currentPath = Astro.url.pathname.replace(`/${Astro.locals.lang}`, "");
 ---
 
-<ul hx-boost="true">
+<ul>
   {
     Object.entries(languages)
       .filter(([lang]) => lang !== Astro.locals.lang)
@@ -20,7 +20,7 @@ const currentPath = Astro.url.pathname.replace(`/${Astro.locals.lang}`, "");
               alt={label}
               class="w-4 mr-2 inline-block object-contain"
             />
-            {label}
+            <span>{label}</span>
           </a>
         </li>
       ))

@@ -1,35 +1,112 @@
 ---
-import { buttonVariants } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 import { UserMenu } from "@/components/user-menu";
 import LanguagePicker from "@/components/language-picker";
+import { buttonVariants } from "@/components/ui/button";
 
-const { session, t } = Astro.locals;
+const { auth, t, translatePath } = Astro.locals;
+
+const session = await auth.validate();
+
+const navigation = [{ title: t("nav.support"), path: translatePath("/app") }];
+
+const submenuNav = [
+  { title: t("nav.home"), path: translatePath("/app") },
+  { title: t("nav.earnings"), path: translatePath("/app/earnings") },
+  { title: t("nav.expenses"), path: translatePath("/app/expenses") },
+];
 ---
 
-<div class="py-2 px-4 border-b border-border flex items-center">
-  <div class="mr-4">
-    <h1 class="font-black text-xl">Econo tracker</h1>
-  </div>
-  <nav>
-    <ul class="flex space-x-2 items-center py-1 px-4">
-      <li>
-        <a
-          href={Astro.locals.translatePath("/app")}
-          class={buttonVariants({ size: "sm", variant: "link" })}
+<header class="text-base md:text-sm relative z-10">
+  <div
+    id="nav-wrapper"
+    class="bg-card items-center gap-x-14 px-4 max-w-screen-xl mx-auto md:flex md:px-8 md:static"
+  >
+    <div class="flex items-center justify-between py-3 md:py-5 md:block">
+      <a href={translatePath("/app")}>
+        <h1 class="font-black text-xl">Econo tracker</h1>
+      </a>
+      <div class="md:hidden">
+        <button
+          class="text-card-foreground/80 hover:text-card-foreground [&>:first-child]:hidden"
+          id="nav-toggler"
         >
-          {t("nav.home")}
-        </a>
-      </li>
+          <X className="h-6 w-6" />
+          <Menu className="h-6 w-6" />
+        </button>
+      </div>
+    </div>
+    <div
+      id="nav-menu"
+      class="nav-menu flex-1 pb-28 mt-8 overflow-y-auto max-h-screen md:block md:overflow-visible md:pb-0 md:mt-0 hidden"
+    >
+      <ul
+        class="items-center space-y-6 md:flex md:space-x-4 md:space-y-0 md:justify-end"
+      >
+        {
+          navigation.map((item) => {
+            return (
+              <li>
+                <a href={item.path} class={buttonVariants({ variant: "link" })}>
+                  {item.title}
+                </a>
+              </li>
+            );
+          })
+        }
+        <div class="flex items-center">
+          <div class="pr-4"><LanguagePicker /></div>
+          {
+            session && (
+              <UserMenu
+                client:idle
+                avatarUrl={session.user.avatarUrl}
+                name={session.user.displayName || session.user.googleSub}
+              />
+            )
+          }
+        </div>
+      </ul>
+    </div>
+  </div>
+  <nav class="border-b">
+    <ul
+      class="flex items-center gap-x-3 max-w-screen-xl mx-auto px-4 overflow-x-auto md:px-8"
+    >
+      {
+        submenuNav.map((item) => {
+          return (
+            <li
+              class={`py-1 ${
+                Astro.url.pathname === item.path
+                  ? "border-b-2 border-primary"
+                  : ""
+              }`}
+            >
+              <a href={item.path} class={buttonVariants({ variant: "ghost" })}>
+                {item.title}
+              </a>
+            </li>
+          );
+        })
+      }
     </ul>
   </nav>
-  <div class="ml-auto px-2"><LanguagePicker /></div>
-  {
-    session && (
-      <UserMenu
-        client:idle
-        avatarUrl={session.user.avatarUrl}
-        name={session.user.displayName || session.user.googleSub}
-      />
-    )
+</header>
+
+<script>
+  function onClick() {
+    document.getElementById("nav-menu")?.classList.toggle("hidden");
+    document.getElementById("nav-wrapper")?.classList.toggle("h-full");
+    document.getElementById("nav-wrapper")?.classList.toggle("fixed");
+    document.getElementById("nav-wrapper")?.classList.toggle("inset-x-0");
+    document
+      .getElementById("nav-toggler")
+      ?.classList.toggle("[&>:first-child]:hidden");
+    document
+      .getElementById("nav-toggler")
+      ?.classList.toggle("[&>:last-child]:hidden");
   }
-</div>
+
+  document.getElementById("nav-toggler")?.addEventListener("click", onClick);
+</script>

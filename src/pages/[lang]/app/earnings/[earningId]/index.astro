@@ -1,0 +1,128 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft, Copy, Trash } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import { Heading } from "@/components/ui/heading";
+import { EarningForm, earningForm } from "@/components/forms/earning-form";
+import { Success } from "@/components/form";
+import { buttonVariants } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+
+const { earningId } = Astro.params;
+const { auth, t, form } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !earningId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName("earningForm", earningForm);
+
+const earning = await (async () => {
+  if (formResult?.data) {
+    const result = await db
+      .update(schema.earning)
+      .set(formResult.data)
+      .where(
+        and(
+          eq(schema.earning.id, earningId),
+          eq(schema.earning.userId, session.user.userId),
+        ),
+      )
+      .returning();
+
+    return result[0];
+  }
+
+  return await db.query.earning.findFirst({
+    where: and(
+      eq(schema.earning.id, earningId),
+      eq(schema.earning.userId, session.user.userId),
+    ),
+  });
+})();
+
+if (!earning) {
+  return Astro.redirect(Astro.locals.translatePath("/app"));
+}
+
+const categories = await db.query.earningCategory.findMany({
+  where: eq(schema.earningCategory.userId, session.user.userId),
+});
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading
+          title={t("earnings.form.title")}
+          description={t("earnings.form.description")}
+        />
+        <div
+          class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 md:mt-0"
+        >
+          <a
+            href={Astro.locals.translatePath(
+              `/app/earnings/${earningId}/delete`,
+            )}
+            class={buttonVariants({ variant: "destructive", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Trash className="w-4 h-4 mr-2" />
+            {t("earnings.delete")}
+          </a>
+          <a
+            href={Astro.locals.translatePath(
+              `/app/earnings/${earningId}/duplicate`,
+            )}
+            class={buttonVariants({ variant: "outline", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            {t("earnings.duplicate")}
+          </a>
+        </div>
+      </div>
+      <div class="mt-4">
+        <a
+          href={Astro.locals.translatePath(`/app/earnings/${earningId}/fixed`)}
+          class="flex items-center space-x-2"
+          data-astro-prefetch="false"
+        >
+          <Switch id="fixed" />
+          <Label htmlFor="fixed">{t("earnings.fixed")}</Label>
+        </a>
+      </div>
+    </div>
+    <div class="py-4" transition:name="form">
+      {
+        !!formResult?.data && (
+          <Success lang={Astro.locals.lang} className="mb-4" />
+        )
+      }
+      <EarningForm
+        serverErrors={formResult?.fieldErrors}
+        earning={earning}
+        categories={categories}
+        client:only
+      />
+    </div>
+  </div>
+</App>
