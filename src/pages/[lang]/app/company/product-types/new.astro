@@ -1,0 +1,25 @@
+---
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const [productType] = await db
+  .insert(schema.productType)
+  .values({
+    id: createId("productType"),
+    userId: session.user.userId,
+    name: "",
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/company/product-types/${productType.id}`),
+);
+---

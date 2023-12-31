@@ -15,6 +15,13 @@
       "when": 1702827473873,
       "tag": "0001_fixed_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1703715637547,
+      "tag": "0002_dazzling_bedlam",
+      "breakpoints": true
     }
   ]
 }

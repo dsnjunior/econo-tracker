@@ -1,0 +1,25 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+const { productTypeId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !productTypeId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+await db
+  .delete(schema.productType)
+  .where(
+    and(
+      eq(schema.productType.id, productTypeId),
+      eq(schema.productType.userId, session.user.userId),
+    ),
+  );
+
+return Astro.redirect(Astro.locals.translatePath("/app/company"));
+---

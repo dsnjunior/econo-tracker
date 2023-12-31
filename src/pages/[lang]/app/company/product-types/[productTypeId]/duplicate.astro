@@ -1,0 +1,39 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { productTypeId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !productTypeId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const originalProduct = await db.query.productType.findFirst({
+  where: and(
+    eq(schema.productType.id, productTypeId),
+    eq(schema.productType.userId, session.user.userId),
+  ),
+});
+
+if (!originalProduct) {
+  return Astro.redirect(Astro.locals.translatePath("/app/company"));
+}
+
+const [productType] = await db
+  .insert(schema.productType)
+  .values({
+    ...originalProduct,
+    id: createId("productType"),
+    userId: session.user.userId,
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/company/product-types/${productType.id}`),
+);
+---

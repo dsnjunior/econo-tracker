@@ -1,0 +1,289 @@
+---
+import { eq, and, ne } from "drizzle-orm";
+import { Banknote } from "lucide-react";
+
+import { db, schema } from "@/lib/db";
+
+import App from "@/layouts/app.astro";
+import InsertDataButton from "@/components/insert-data-button";
+import Heading from "@/components/ui/heading.astro";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import type { SellRegisterWithProduct } from "@/lib/db/schema";
+import { Separator } from "@/components/ui/separator";
+import { formatDate, formatNumber } from "@/lib/utils";
+
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+async function querySells() {
+  const result = await db.query.sell.findMany({
+    where: and(
+      eq(schema.sell.userId, session!.user.userId),
+      ne(schema.sell.description, ""),
+    ),
+    with: {
+      registers: {
+        with: {
+          color: true,
+          size: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  return result;
+}
+
+const sells = await querySells();
+
+function groupRegisters(registers: SellRegisterWithProduct[]) {
+  return registers.reduce(
+    (acc, register) => {
+      const idx = acc.findIndex(
+        ({ typeId }) => typeId === register.productTypeId,
+      );
+
+      if (idx === -1) {
+        acc.push({
+          typeId: register.productTypeId,
+          amount: register.amount,
+          name: register.type.name,
+          totalQuantity: register.quantity,
+          sizes: [
+            {
+              sizeId: register.productSizeId,
+              name: register.size.name,
+              colors: [
+                {
+                  colorId: register.productColorId,
+                  quantity: register.quantity,
+                  name: register.color.name,
+                  color: register.color.color,
+                },
+              ],
+            },
+          ],
+        });
+        return acc;
+      }
+
+      acc[idx].totalQuantity += register.quantity;
+
+      const sizeIdx = acc[idx].sizes.findIndex(
+        ({ sizeId }) => sizeId === register.productSizeId,
+      );
+
+      if (sizeIdx === -1) {
+        acc[idx].sizes.push({
+          sizeId: register.productSizeId,
+          name: register.size.name,
+          colors: [
+            {
+              colorId: register.productColorId,
+              quantity: register.quantity,
+              color: register.color.color,
+              name: register.color.name,
+            },
+          ],
+        });
+        return acc;
+      }
+
+      const colorIdx = acc[idx].sizes[sizeIdx].colors.findIndex(
+        ({ colorId }) => colorId === register.productColorId,
+      );
+
+      if (colorIdx === -1) {
+        acc[idx].sizes[sizeIdx].colors.push({
+          colorId: register.productColorId,
+          quantity: register.quantity,
+          name: register.color.name,
+          color: register.color.color,
+        });
+        return acc;
+      }
+
+      acc[idx].sizes[sizeIdx].colors[colorIdx].quantity += register.quantity;
+
+      return acc;
+    },
+    [] as {
+      typeId: string;
+      amount: number;
+      name: string;
+      totalQuantity: number;
+      sizes: {
+        sizeId: string;
+        name: string;
+        colors: {
+          colorId: string;
+          name: string;
+          quantity: number;
+          color: string;
+        }[];
+      }[];
+    }[],
+  );
+}
+---
+
+<App title={t("pagetitle.sells")}>
+  <div class="px-4 py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.sells")}
+        description={t("pagedescription.sells")}
+        class="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+      <InsertDataButton />
+    </div>
+    <div class="space-y-4 mt-8" transition:name="content">
+      {
+        sells.map((data) => {
+          const groupedRegisters = groupRegisters(data.registers);
+          const { quantity, amount } = groupedRegisters.reduce(
+            (acc, type) => ({
+              quantity: acc.quantity + type.totalQuantity,
+              amount: acc.amount + type.amount * type.totalQuantity,
+            }),
+            { quantity: 0, amount: 0 },
+          );
+          return (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Banknote className="w-5 h-5 mr-2" /> {data.description}
+                </CardTitle>
+
+                <div class="text-sm">
+                  Data:{" "}
+                  <span class="font-bold">
+                    {formatDate(data.date, data.timeZone, Astro.locals.lang)}
+                  </span>
+                </div>
+                <div class="text-sm">
+                  Quantidade: <span class="font-bold">{quantity}</span>
+                </div>
+                <div class="text-sm">
+                  Preço médio unitário:{" "}
+                  <span class="font-bold">
+                    {formatNumber(String(amount / quantity), Astro.locals.lang)}
+                  </span>
+                </div>
+                <div class="text-sm">
+                  Preço total:{" "}
+                  <span class="font-bold">
+                    {formatNumber(String(amount), Astro.locals.lang)}
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p class="mb-2 font-semibold">Compras:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedRegisters.map((type) => (
+                    <Card>
+                      <CardContent className="p-4">
+                        <h3 class="text-lg leading-none mb-2 font-bold">
+                          {type.name}
+                        </h3>
+                        <Separator className="last:hidden mt-4 mb-2" />
+
+                        <div class="text-sm">
+                          Quantidade:{" "}
+                          <span class="font-bold">{type.totalQuantity}</span>
+                        </div>
+                        <div class="text-sm">
+                          Preço unitário:{" "}
+                          <span class="font-bold">
+                            {formatNumber(
+                              String(type.amount),
+                              Astro.locals.lang,
+                            )}
+                          </span>
+                        </div>
+                        <div class="text-sm">
+                          Preço total:{" "}
+                          <span class="font-bold">
+                            {formatNumber(
+                              String(type.totalQuantity * type.amount),
+                              Astro.locals.lang,
+                            )}
+                          </span>
+                        </div>
+                        <Separator className="last:hidden mt-2 mb-2" />
+
+                        {type.sizes.map((size) => (
+                          <>
+                            <div>
+                              <div>
+                                <h4 class="font-bold">{size.name}</h4>
+                              </div>
+                              <div class="flex gap-2 flex-wrap">
+                                {size.colors.map((color) => (
+                                  <Badge
+                                    className="flex items-center"
+                                    variant="secondary"
+                                  >
+                                    <div
+                                      class="w-4 h-4 rounded-full mr-2 border"
+                                      style={{ background: color.color }}
+                                    />
+                                    {color.quantity} peças
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <Separator className="last:hidden mt-4 mb-2" />
+                          </>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="grid grid-cols-2 gap-4">
+                <a
+                  class={buttonVariants({ size: "sm" })}
+                  href={Astro.locals.translatePath(
+                    `/app/company/sells/${data.id}`,
+                  )}
+                >
+                  {t("edit")}
+                </a>
+                <a
+                  class={buttonVariants({ size: "sm" })}
+                  href={Astro.locals.translatePath(
+                    `/app/company/sells/${data.id}/products`,
+                  )}
+                >
+                  {`${t("edit")} ${t("sellRegisters.quantity")}s`}
+                </a>
+              </CardFooter>
+            </Card>
+          );
+        })
+      }
+    </div>
+    {
+      !sells.length && (
+        <div class="mt-12 text-center">
+          <p class="text-muted-foreground mb-4">{t("dashboard.empty")}</p>
+        </div>
+      )
+    }
+  </div>
+</App>

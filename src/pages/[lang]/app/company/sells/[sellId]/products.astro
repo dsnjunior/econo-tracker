@@ -1,0 +1,74 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import Heading from "@/components/ui/heading.astro";
+import { buttonVariants } from "@/components/ui/button";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+import { SellRegisterForm } from "@/modules/sell/sell-register-form";
+
+const { sellId } = Astro.params;
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !sellId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const sell = await db.query.sell.findFirst({
+  where: and(
+    eq(schema.sell.id, sellId),
+    eq(schema.sell.userId, session.user.userId),
+  ),
+});
+
+if (!sell) {
+  return Astro.redirect(Astro.locals.translatePath("/app/company"));
+}
+
+const [productTypes, productColors, registers] = await Promise.all([
+  db.query.productType.findMany({
+    where: eq(schema.productType.userId, session.user.userId),
+    with: { sizes: true },
+  }),
+  db.query.productColor.findMany({
+    where: eq(schema.productColor.userId, session.user.userId),
+  }),
+  db.query.sellRegister.findMany({
+    where: eq(schema.sellRegister.sellId, sellId),
+  }),
+]);
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app/company")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading title={t("sellRegisters.form.title")} description="" />
+      </div>
+    </div>
+    <div class="py-4">
+      <SellRegisterForm
+        productTypes={productTypes}
+        productColors={productColors}
+        registers={registers}
+        sellId={sellId}
+        client:only
+      />
+    </div>
+  </div>
+</App>

@@ -1,0 +1,99 @@
+---
+import { eq, and, ne } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+import App from "@/layouts/app.astro";
+import InsertDataButton from "@/components/insert-data-button";
+import Heading from "@/components/ui/heading.astro";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+async function queryProductTypes() {
+  const result = await db.query.productType.findMany({
+    where: and(
+      eq(schema.productType.userId, session!.user.userId),
+      ne(schema.productType.name, ""),
+    ),
+    with: { sizes: true },
+  });
+
+  return result;
+}
+
+const productTypes = await queryProductTypes();
+---
+
+<App title={t("pagetitle.productTypes")}>
+  <div class="px-4 py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.productTypes")}
+        description={t("pagedescription.productTypes")}
+        class="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+      <InsertDataButton />
+    </div>
+    <div class="space-y-4 mt-8" transition:name="content">
+      {
+        productTypes.map((data) => (
+          <Card>
+            <CardHeader>
+              <CardTitle>{data.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p class="mb-2 text-sm font-semibold">
+                {t("productSizes.name")}s
+              </p>
+              <div class="flex gap-4">
+                {data.sizes.map((size) => (
+                  <Badge variant="outline">{size.name}</Badge>
+                ))}
+              </div>
+            </CardContent>
+            <CardFooter className="grid grid-cols-2 gap-4">
+              <a
+                class={buttonVariants({ size: "sm" })}
+                href={Astro.locals.translatePath(
+                  `/app/company/product-types/${data.id}`,
+                )}
+              >
+                {t("edit")}
+              </a>
+              <a
+                class={buttonVariants({ size: "sm" })}
+                href={Astro.locals.translatePath(
+                  `/app/company/product-types/${data.id}/sizes`,
+                )}
+              >
+                {`${t("edit")} ${t("productSizes.name")}s`}
+              </a>
+            </CardFooter>
+          </Card>
+        ))
+      }
+    </div>
+    {
+      !productTypes.length && (
+        <div class="mt-12 text-center">
+          <p class="text-muted-foreground mb-4">{t("dashboard.empty")}</p>
+        </div>
+      )
+    }
+  </div>
+</App>

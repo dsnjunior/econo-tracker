@@ -1,0 +1,281 @@
+---
+import { eq, and, ne, or } from "drizzle-orm";
+import { Shirt, Calendar, DollarSign } from "lucide-react";
+
+import { db, schema } from "@/lib/db";
+
+import App from "@/layouts/app.astro";
+import InsertDataButton from "@/components/insert-data-button";
+import Heading from "@/components/ui/heading.astro";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { BuyRegisterWithProduct } from "@/lib/db/schema";
+import { formatDate, formatNumber } from "@/lib/utils";
+import { ProductCarousel } from "@/modules/buy/product-carousel";
+import { ProductOptions } from "@/modules/buy/product-options";
+import { buyForm } from "@/modules/buy/buy-form";
+import { Success } from "@/components/form";
+
+const { auth, t, form } = Astro.locals;
+
+const buyId = Astro.url.searchParams.get("id");
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName("buyForm", buyForm);
+
+if (formResult?.data) {
+  await db
+    .update(schema.buy)
+    .set({
+      date: formResult.data.date,
+      timeZone: formResult.data.timeZone,
+      description: formResult.data.description,
+    })
+    .where(
+      and(
+        eq(schema.buy.id, formResult.data.buyId),
+        eq(schema.buy.userId, session.user.userId),
+      ),
+    );
+}
+
+async function queryBuys() {
+  const result = await db.query.buy.findMany({
+    where: and(
+      eq(schema.buy.userId, session!.user.userId),
+      buyId
+        ? or(ne(schema.buy.description, ""), eq(schema.buy.id, buyId))
+        : ne(schema.buy.description, ""),
+    ),
+    with: {
+      registers: {
+        with: {
+          color: true,
+          size: true,
+          type: true,
+        },
+      },
+    },
+  });
+
+  return result;
+}
+
+const buys = await queryBuys();
+
+function groupRegisters(registers: BuyRegisterWithProduct[]) {
+  return registers.reduce(
+    (acc, register) => {
+      const idx = acc.findIndex(
+        ({ typeId }) => typeId === register.productTypeId,
+      );
+
+      if (idx === -1) {
+        acc.push({
+          typeId: register.productTypeId,
+          amount: register.amount,
+          name: register.type.name,
+          totalQuantity: register.quantity,
+          sizes: [
+            {
+              sizeId: register.productSizeId,
+              name: register.size.name,
+              colors: [
+                {
+                  colorId: register.productColorId,
+                  quantity: register.quantity,
+                  name: register.color.name,
+                  color: register.color.color,
+                },
+              ],
+            },
+          ],
+        });
+        return acc;
+      }
+
+      acc[idx].totalQuantity += register.quantity;
+
+      const sizeIdx = acc[idx].sizes.findIndex(
+        ({ sizeId }) => sizeId === register.productSizeId,
+      );
+
+      if (sizeIdx === -1) {
+        acc[idx].sizes.push({
+          sizeId: register.productSizeId,
+          name: register.size.name,
+          colors: [
+            {
+              colorId: register.productColorId,
+              quantity: register.quantity,
+              color: register.color.color,
+              name: register.color.name,
+            },
+          ],
+        });
+        return acc;
+      }
+
+      const colorIdx = acc[idx].sizes[sizeIdx].colors.findIndex(
+        ({ colorId }) => colorId === register.productColorId,
+      );
+
+      if (colorIdx === -1) {
+        acc[idx].sizes[sizeIdx].colors.push({
+          colorId: register.productColorId,
+          quantity: register.quantity,
+          name: register.color.name,
+          color: register.color.color,
+        });
+        return acc;
+      }
+
+      acc[idx].sizes[sizeIdx].colors[colorIdx].quantity += register.quantity;
+
+      return acc;
+    },
+    [] as {
+      typeId: string;
+      amount: number;
+      name: string;
+      totalQuantity: number;
+      sizes: {
+        sizeId: string;
+        name: string;
+        colors: {
+          colorId: string;
+          name: string;
+          quantity: number;
+          color: string;
+        }[];
+      }[];
+    }[],
+  );
+}
+
+const [productTypes, productColors] = await Promise.all([
+  db.query.productType.findMany({
+    where: eq(schema.productType.userId, session.user.userId),
+    with: { sizes: true },
+  }),
+  db.query.productColor.findMany({
+    where: eq(schema.productColor.userId, session.user.userId),
+  }),
+]);
+---
+
+<App title={t("pagetitle.buys")}>
+  <div class="px-4 py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.buys")}
+        description={t("pagedescription.buys")}
+        class="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+      <InsertDataButton />
+    </div>
+    {
+      !!formResult?.data && (
+        <Success lang={Astro.locals.lang} className="my-4" />
+      )
+    }
+    <div class="space-y-4 mt-8" transition:name="content">
+      {
+        buys.map((data) => {
+          const groupedRegisters = groupRegisters(data.registers);
+          const { quantity, amount } = groupedRegisters.reduce(
+            (acc, type) => ({
+              quantity: acc.quantity + type.totalQuantity,
+              amount: acc.amount + type.amount * type.totalQuantity,
+            }),
+            { quantity: 0, amount: 0 },
+          );
+          return (
+            <Card>
+              <CardHeader>
+                <div class="flex">
+                  <CardTitle className="flex items-center mr-auto">
+                    {data.description}
+                  </CardTitle>
+                  <ProductOptions
+                    buy={data}
+                    registers={data.registers}
+                    types={productTypes}
+                    colors={productColors}
+                    serverErrors={formResult?.fieldErrors}
+                    open={
+                      !!formResult?.fieldErrors ||
+                      (!!buyId && buyId === data.id)
+                    }
+                    mode={
+                      formResult?.fieldErrors
+                        ? "edit"
+                        : !!buyId && buyId === data.id && !!data.description
+                        ? "manage"
+                        : !!buyId && buyId === data.id
+                        ? "edit"
+                        : "menu"
+                    }
+                    client:idle
+                  />
+                </div>
+
+                <div class="text-sm flex space-x-4 flex-wrap pt-2">
+                  <div class="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span class="font-bold">
+                      {formatDate(
+                        data.date,
+                        data.timeZone,
+                        Astro.locals.lang,
+                        "short",
+                      )}
+                    </span>
+                  </div>
+                  <div class="flex items-center">
+                    <Shirt className="w-4 h-4 mr-2" />
+                    <span class="font-bold mr-1">{quantity}</span> unidades
+                  </div>
+                  <div class="flex items-center">
+                    <DollarSign className="w-4 h-4 mr-1.5" />
+                    <span class="font-bold">
+                      {formatNumber(String(amount), Astro.locals.lang)}
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ProductCarousel
+                  client:idle
+                  lang={Astro.locals.lang}
+                  items={groupedRegisters.flatMap((type) =>
+                    type.sizes.flatMap((size) =>
+                      size.colors.map((color) => ({
+                        quantity: color.quantity,
+                        color: color.color,
+                        type: type.name,
+                        size: size.name,
+                        price: type.amount,
+                      })),
+                    ),
+                  )}
+                />
+              </CardContent>
+            </Card>
+          );
+        })
+      }
+    </div>
+    {
+      !buys.length && (
+        <div class="mt-12 text-center">
+          <p class="text-muted-foreground mb-4">{t("dashboard.empty")}</p>
+        </div>
+      )
+    }
+  </div>
+</App>

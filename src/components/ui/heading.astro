@@ -1,0 +1,14 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  class?: string;
+}
+
+const { title, description, class: className, ...props } = Astro.props;
+---
+
+<div {...props} class={className} transition:name="heading">
+  <h2 class="text-3xl font-bold tracking-tight">{title}</h2>
+  <p class="text-sm text-muted-foreground">{description}</p>
+</div>

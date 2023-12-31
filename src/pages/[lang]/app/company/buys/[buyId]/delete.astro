@@ -1,0 +1,37 @@
+---
+import { and, eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+const { buyId } = Astro.params;
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !buyId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const isBuyFromCurrentUser = await db.query.buy.findFirst({
+  where: and(
+    eq(schema.buy.id, buyId),
+    eq(schema.buy.userId, session.user.userId),
+  ),
+});
+
+if (!isBuyFromCurrentUser) {
+  return Astro.redirect(Astro.locals.translatePath("/app/company"));
+}
+
+await db
+  .delete(schema.buyRegister)
+  .where(and(eq(schema.buyRegister.buyId, buyId)));
+
+await db
+  .delete(schema.buy)
+  .where(
+    and(eq(schema.buy.id, buyId), eq(schema.buy.userId, session.user.userId)),
+  );
+
+return Astro.redirect(Astro.locals.translatePath("/app/company/buys"));
+---

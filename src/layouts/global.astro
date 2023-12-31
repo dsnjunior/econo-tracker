@@ -3,6 +3,7 @@ import { ViewTransitions } from "astro:transitions";
 
 import "@/styles/globals.css";
 import Posthog from "@/components/posthog.astro";
+import { Toaster } from "@/components/ui/sonner";
 
 export interface Props {
   title?: string;
@@ -11,28 +12,58 @@ export interface Props {
 const { title } = Astro.props;
 ---
 
-<html lang={Astro.locals.lang}>
+<html lang={Astro.locals.lang} transition:animate="none">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1"
+    />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧾</text></svg>"
     />
     <meta name="generator" content={Astro.generator} />
     <ViewTransitions />
-    <title>{title ? `${title} - Econo tracker` : "Econo tracker"}</title>
+    <title>{title ? `${title} - Organizado` : "Organizado"}</title>
     <Posthog />
+    <Toaster client:only />
   </head>
   <body>
     <slot />
     <script>
-      (function () {
+      document.addEventListener("astro:page-load", () => {
         document.body.style.setProperty("--vh", `${window.innerHeight}px`);
-        window.addEventListener("resize", () => {
-          document.body.style.setProperty("--vh", `${window.innerHeight}px`);
+      });
+      window.addEventListener("resize", () => {
+        document.body.style.setProperty("--vh", `${window.innerHeight}px`);
+      });
+    </script>
+    <script is:inline>
+      const getThemePreference = () => {
+        if (
+          typeof localStorage !== "undefined" &&
+          localStorage.getItem("theme")
+        ) {
+          return localStorage.getItem("theme");
+        }
+        return window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light";
+      };
+      const isDark = getThemePreference() === "dark";
+      document.documentElement.classList[isDark ? "add" : "remove"]("dark");
+
+      if (typeof localStorage !== "undefined") {
+        const observer = new MutationObserver(() => {
+          const isDark = document.documentElement.classList.contains("dark");
+          localStorage.setItem("theme", isDark ? "dark" : "light");
         });
-      })();
+        observer.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      }
     </script>
   </body>
 </html>

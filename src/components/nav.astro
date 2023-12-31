@@ -12,19 +12,37 @@ const navigation = [{ title: t("nav.support"), path: translatePath("/app") }];
 
 const submenuNav = [
   { title: t("nav.home"), path: translatePath("/app") },
-  { title: t("nav.earnings"), path: translatePath("/app/earnings") },
-  { title: t("nav.expenses"), path: translatePath("/app/expenses") },
+  // {
+  //   title: t("nav.earningsAndExpenses"),
+  //   path: translatePath("/app/earnings-and-expenses"),
+  // },
+  // { title: t("nav.earnings"), path: translatePath("/app/earnings") },
+  // { title: t("nav.expenses"), path: translatePath("/app/expenses") },
+  { title: t("nav.buys"), path: translatePath("/app/buys") },
+  { title: t("nav.sells"), path: translatePath("/app/sells") },
+  { title: t("nav.productTypes"), path: translatePath("/app/product-types") },
+  { title: t("nav.productColors"), path: translatePath("/app/product-colors") },
 ];
 ---
 
-<header class="text-base md:text-sm relative z-10">
+<header class="text-base md:text-sm relative z-10" transition:animate="none">
   <div
     id="nav-wrapper"
     class="bg-card items-center gap-x-14 px-4 max-w-screen-xl mx-auto md:flex md:px-8 md:static"
   >
     <div class="flex items-center justify-between py-3 md:py-5 md:block">
       <a href={translatePath("/app")}>
-        <h1 class="font-black text-xl">Econo tracker</h1>
+        <h1 class="font-sans font-black text-xl flex">
+          <div class="text-green-700 animate-spin">O</div><div class="rotate-6">
+            rg<span class="text-blue-700">a</span>
+          </div><div class="text-red-700">n</div><div
+            class="-rotate-6 -translate-y-0.5"
+          >
+            i
+          </div><div class="translate-y-0.5">z</div><div class="animate-pulse">
+            ad
+          </div><div class="-translate-y-1.5">o</div>
+        </h1>
       </a>
       <div class="md:hidden">
         <button
@@ -41,7 +59,7 @@ const submenuNav = [
       class="nav-menu flex-1 pb-28 mt-8 overflow-y-auto max-h-screen md:block md:overflow-visible md:pb-0 md:mt-0 hidden"
     >
       <ul
-        class="items-center space-y-6 md:flex md:space-x-4 md:space-y-0 md:justify-end"
+        class="items-center space-y-6 md:flex md:space-x-4 md:space-y-0 md:justify-end whitespace-nowrap"
       >
         {
           navigation.map((item) => {
@@ -69,9 +87,9 @@ const submenuNav = [
       </ul>
     </div>
   </div>
-  <nav class="border-b">
+  <nav class="border-b" transition:name="nav" transition:animate="fade">
     <ul
-      class="flex items-center gap-x-3 max-w-screen-xl mx-auto px-4 overflow-x-auto md:px-8"
+      class="flex items-center gap-x-3 max-w-screen-xl mx-auto px-4 overflow-x-auto md:px-8 whitespace-nowrap"
     >
       {
         submenuNav.map((item) => {

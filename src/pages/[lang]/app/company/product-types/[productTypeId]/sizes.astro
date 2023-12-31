@@ -1,0 +1,66 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import Heading from "@/components/ui/heading.astro";
+import { buttonVariants } from "@/components/ui/button";
+import { ProductSizeForm } from "@/modules/product/product-size-form";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+
+const { productTypeId } = Astro.params;
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !productTypeId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const productType = await db.query.productType.findFirst({
+  where: and(
+    eq(schema.productType.id, productTypeId),
+    eq(schema.productType.userId, session.user.userId),
+  ),
+});
+
+if (!productType) {
+  return Astro.redirect(Astro.locals.translatePath("/app/company"));
+}
+
+const productSizes = await db.query.productSize.findMany({
+  where: eq(schema.productSize.productTypeId, productTypeId),
+});
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app/company")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading
+          title={t("productSizes.form.title")}
+          description={t("productSizes.name.note")}
+        />
+      </div>
+    </div>
+    <div class="py-4">
+      <ProductSizeForm
+        productSizes={productSizes}
+        productTypeId={productTypeId}
+        client:only
+      />
+    </div>
+  </div>
+</App>

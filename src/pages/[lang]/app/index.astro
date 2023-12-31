@@ -1,18 +1,14 @@
 ---
-import { eq, and, lte, or, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db, schema } from "@/lib/db";
-import { createCategoriesIfNotExist } from "@/lib/helpers/create-categories";
-import { deleteEmptyData } from "@/lib/helpers/delete-empty-data";
 
 import App from "@/layouts/app.astro";
 import InsertDataButton from "@/components/insert-data-button";
-import { Heading } from "@/components/ui/heading";
-import DataCard from "@/components/data-card.astro";
-import { BarChart } from "@/components/ui/chart/bar";
-import { idContext } from "@/lib/id";
+import Heading from "@/components/ui/heading.astro";
+import { PieChart } from "@/components/ui/chart/pie";
 
-const { auth, t, lang } = Astro.locals;
+const { auth, t } = Astro.locals;
 
 const session = await auth.validate();
 
@@ -20,185 +16,105 @@ if (!session) {
   return Astro.redirect(Astro.locals.translatePath("/"));
 }
 
-const today = new Date();
-const lastDayOfMonthInOneYear = new Date(
-  today.getFullYear() + 1,
-  today.getMonth(),
-  0,
-).toISOString();
+const userHasProductType = await db.query.productType.findFirst({
+  where: eq(schema.productType.userId, session.user.userId),
+});
 
-async function queryEarnings() {
-  const result = await db.query.earning.findMany({
-    where: and(
-      eq(schema.earning.userId, session!.user.userId),
-      lte(schema.earning.date, lastDayOfMonthInOneYear),
-      or(ne(schema.earning.amount, 0), ne(schema.earning.timeZone, "")),
-    ),
-    orderBy: (earning, { desc }) => [desc(earning.date)],
-    with: { category: true },
-  });
-
-  return result;
+if (!userHasProductType) {
+  return Astro.redirect(Astro.locals.translatePath("/app/product-types/new"));
 }
 
-async function queryFixedEarnings() {
-  const result = await db.query.fixedEarningRegister.findMany({
-    where: and(
-      eq(schema.fixedEarningRegister.userId, session!.user.userId),
-      lte(schema.fixedEarningRegister.dueDate, lastDayOfMonthInOneYear),
-      or(
-        ne(schema.fixedEarning.amount, 0),
-        ne(schema.fixedEarning.timeZone, ""),
-      ),
-    ),
-    orderBy: (fixedEarningRegister, { desc }) => [
-      desc(fixedEarningRegister.dueDate),
-    ],
-    with: { fixedEarning: { with: { category: true } } },
-  });
+const userHasProductColor = await db.query.productColor.findFirst({
+  where: eq(schema.productColor.userId, session.user.userId),
+});
 
-  return result;
+if (!userHasProductColor) {
+  return Astro.redirect(Astro.locals.translatePath("/app/product-colors"));
 }
 
-async function queryExpenses() {
-  const result = await db.query.expense.findMany({
-    where: and(
-      eq(schema.expense.userId, session!.user.userId),
-      lte(schema.expense.date, lastDayOfMonthInOneYear),
-      or(ne(schema.expense.amount, 0), ne(schema.expense.timeZone, "")),
-    ),
-    orderBy: (expense, { desc }) => [desc(expense.date)],
-    with: { category: true },
-  });
+const productsInStock = await db.query.productInStock.findMany({
+  where: eq(schema.productInStock.userId, session.user.userId),
+  with: { type: true, color: true, size: true },
+});
 
-  return result;
-}
-
-async function queryFixedExpenses() {
-  const result = await db.query.fixedExpenseRegister.findMany({
-    where: and(
-      eq(schema.fixedExpenseRegister.userId, session!.user.userId),
-      lte(schema.fixedExpenseRegister.dueDate, lastDayOfMonthInOneYear),
-      or(
-        ne(schema.fixedExpense.amount, 0),
-        ne(schema.fixedExpense.timeZone, ""),
-      ),
-    ),
-    orderBy: (fixedExpenseRegister, { desc }) => [
-      desc(fixedExpenseRegister.dueDate),
-    ],
-    with: { fixedExpense: { with: { category: true } } },
-  });
-
-  return result;
-}
-
-const [, , earnings, fixedEarningRegisters, expenses, fixedExpenseRegisters] =
-  await Promise.all([
-    createCategoriesIfNotExist(lang, session.user.userId),
-    deleteEmptyData(session.user.userId),
-    queryEarnings(),
-    queryFixedEarnings(),
-    queryExpenses(),
-    queryFixedExpenses(),
-  ]);
-
-function transformData(
-  raw:
-    | (typeof earnings)[number]
-    | (typeof fixedEarningRegisters)[number]
-    | (typeof expenses)[number]
-    | (typeof fixedExpenseRegisters)[number],
-) {
-  if ("fixedEarning" in raw) {
-    return {
-      ...raw,
-      type: "income",
-      description: raw.fixedEarning!.description!,
-      date: raw.dueDate,
-      url: Astro.locals.translatePath(
-        `/app/fixed-earnings/${raw.fixedEarningId}`,
-      ),
-      fixed: true,
-      category: raw.fixedEarning!.category!,
-    } as const;
-  }
-  if ("fixedExpense" in raw) {
-    return {
-      ...raw,
-      type: "expense",
-      description: raw.fixedExpense!.description!,
-      date: raw.dueDate,
-      url: Astro.locals.translatePath(
-        `/app/fixed-expenses/${raw.fixedExpenseId}`,
-      ),
-      fixed: true,
-      category: raw.fixedExpense!.category!,
-    } as const;
-  }
-
-  const isEarning = raw.id.startsWith(idContext["earning"]);
-
-  return {
-    ...raw,
-    type: isEarning ? "income" : "expense",
-    url: isEarning
-      ? Astro.locals.translatePath(`/app/earnings/${raw.id}`)
-      : Astro.locals.translatePath(`/app/expenses/${raw.id}`),
-    fixed: false,
-    category: raw.category!,
-  } as const;
-}
-
-const orderedData = [
-  ...earnings,
-  ...fixedEarningRegisters,
-  ...expenses,
-  ...fixedExpenseRegisters,
-]
-  .sort((a, b) => {
-    const aDate = "date" in a ? a.date : a.dueDate;
-    const bDate = "date" in b ? b.date : b.dueDate;
-
-    return new Date(aDate).getTime() - new Date(bDate).getTime();
-  })
-  .map(transformData);
-
-const chartData = orderedData.reduce(
-  (acc, data) => {
-    const date = new Date(data.date);
-    const month = date.getMonth();
-    const year = date.getFullYear();
-
-    // @ts-ignore
-    const name = `${t(`months.${month}`)} ${year}`;
-
-    let currentIndex = acc.findIndex((item) => item?.name === name);
-
-    if (currentIndex === -1) {
-      currentIndex =
+const productsInStockByType = productsInStock
+  .reduce(
+    (acc, pis) => {
+      const idx = acc.findIndex((item) => item.id === pis.type.id);
+      if (idx === -1) {
         acc.push({
-          name,
-          [t("income")]: 0,
-          [t("expenses")]: 0,
-        }) - 1;
+          value: pis.quantity,
+          id: pis.type.id,
+          label: pis.type.name,
+        });
+        return acc;
+      }
+
+      acc[idx].value += pis.quantity;
+
+      return acc;
+    },
+    [] as {
+      value: number;
+      id: string;
+      label: string;
+    }[],
+  )
+  .map((item) => ({
+    ...item,
+    id: item.label,
+  }));
+
+const productsInStockByColor = productsInStock
+  .reduce(
+    (acc, pis) => {
+      const idx = acc.findIndex((item) => item.id === pis.color.id);
+      if (idx === -1) {
+        acc.push({
+          value: pis.quantity,
+          id: pis.color.id,
+          label: pis.color.name,
+        });
+        return acc;
+      }
+
+      acc[idx].value += pis.quantity;
+
+      return acc;
+    },
+    [] as {
+      value: number;
+      id: string;
+      label: string;
+    }[],
+  )
+  .map((item) => ({
+    ...item,
+    id: item.label,
+  }));
+
+const productsInStockBySize = productsInStock.reduce(
+  (acc, pis) => {
+    const idx = acc.findIndex((item) => item.id === pis.size.name);
+    if (idx === -1) {
+      acc.push({
+        value: pis.quantity,
+        id: pis.size.name,
+        label: pis.size.name,
+      });
+      return acc;
     }
 
-    if (data.type === "income") {
-      acc[currentIndex][t("income")] += data.amount;
-    } else {
-      acc[currentIndex][t("expenses")] += data.amount;
-    }
+    acc[idx].value += pis.quantity;
 
     return acc;
   },
-  [] as { [x: string]: any; name: string }[],
+  [] as {
+    value: number;
+    id: string;
+    label: string;
+  }[],
 );
-
-const chartKeys = [
-  { key: t("income"), color: "#22c55e" },
-  { key: t("expenses"), color: "#ef4444" },
-];
 ---
 
 <App title={t("pagetitle.app")}>
@@ -206,27 +122,36 @@ const chartKeys = [
     <div class="sm:flex items-center">
       <Heading
         title={t("pagetitle.app")}
-        description=""
-        className="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+        description={t("pagedescription.app")}
+        class="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
       />
       <InsertDataButton />
     </div>
-    {
-      !!orderedData.length && (
-        <div class="h-80 mt-8">
-          <BarChart data={chartData} keys={chartKeys} client:idle />
-        </div>
-      )
-    }
-    <div class="space-y-4 mt-8">
-      {orderedData.map((data) => <DataCard data={data} />)}
+    <div transition:name="content">
+      {
+        productsInStock && (
+          <div class="mt-8 grid md:grid-cols-2 gap-10">
+            <div class="h-80 w-full">
+              <h2 class="text-xl font-bold tracking-tight mb-4">
+                Produtos no estoque por tipo
+              </h2>
+              <PieChart data={productsInStockByType} client:only />
+            </div>
+            <div class="h-80 w-full">
+              <h2 class="text-xl font-bold tracking-tight mb-4">
+                Produtos no estoque por tamanho
+              </h2>
+              <PieChart data={productsInStockBySize} client:only />
+            </div>
+            <div class="h-80 w-full">
+              <h2 class="text-xl font-bold tracking-tight mb-4">
+                Produtos no estoque por cor
+              </h2>
+              <PieChart data={productsInStockByColor} client:only />
+            </div>
+          </div>
+        )
+      }
     </div>
-    {
-      !orderedData.length && (
-        <div class="mt-12 text-center">
-          <p class="text-muted-foreground mb-4">{t("dashboard.empty")}</p>
-        </div>
-      )
-    }
   </div>
 </App>

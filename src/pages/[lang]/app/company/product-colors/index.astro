@@ -1,0 +1,36 @@
+---
+import { eq } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+import App from "@/layouts/app.astro";
+import { ProductColorForm } from "@/modules/product/product-color-form";
+import Heading from "@/components/ui/heading.astro";
+
+const { auth, t } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const productColors = await db.query.productColor.findMany({
+  where: eq(schema.productColor.userId, session!.user.userId),
+});
+---
+
+<App title={t("pagetitle.productColors")}>
+  <div class="px-4 py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.productColors")}
+        description={t("pagedescription.productColors")}
+        class="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+    </div>
+    <div class="space-y-4 mt-8" transition:name="content">
+      <ProductColorForm productColors={productColors} client:only />
+    </div>
+  </div>
+</App>

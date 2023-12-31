@@ -1,0 +1,109 @@
+---
+import { and, eq } from "drizzle-orm";
+import { ArrowLeft, Copy, Trash } from "lucide-react";
+
+import App from "@/layouts/app.astro";
+import Heading from "@/components/ui/heading.astro";
+import {
+  ProductTypeForm,
+  productTypeForm,
+} from "@/modules/product/product-type-form";
+import { buttonVariants } from "@/components/ui/button";
+
+import { db, schema } from "@/lib/db";
+import { cn } from "@/lib/utils";
+
+const { productTypeId } = Astro.params;
+const { auth, t, form } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session || !productTypeId) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName("productTypeForm", productTypeForm);
+
+if (formResult?.data) {
+  await db
+    .update(schema.productType)
+    .set(formResult.data)
+    .where(
+      and(
+        eq(schema.productType.id, productTypeId),
+        eq(schema.productType.userId, session.user.userId),
+      ),
+    );
+
+  return Astro.redirect(
+    Astro.locals.translatePath(
+      `/app/company/product-types/${productTypeId}/sizes`,
+    ),
+  );
+}
+
+const productType = await db.query.productType.findFirst({
+  where: and(
+    eq(schema.productType.id, productTypeId),
+    eq(schema.productType.userId, session.user.userId),
+  ),
+});
+
+if (!productType) {
+  return Astro.redirect(Astro.locals.translatePath("/app/company"));
+}
+---
+
+<App>
+  <div class="p-4 container">
+    <div>
+      <a
+        href={Astro.locals.translatePath("/app/company")}
+        class={cn(
+          buttonVariants({ size: "sm", variant: "link" }),
+          "-ml-4 mb-4",
+        )}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        {t("back")}
+      </a>
+      <div class="flex flex-col md:flex-row justify-between">
+        <Heading
+          title={t("productTypes.form.title")}
+          description={t("productTypes.form.description")}
+        />
+        <div
+          class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-4 md:mt-0"
+        >
+          <a
+            href={Astro.locals.translatePath(
+              `/app/company/product-types/${productTypeId}/delete`,
+            )}
+            class={buttonVariants({ variant: "destructive", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Trash className="w-4 h-4 mr-2" />
+            {t("productTypes.delete")}
+          </a>
+          <a
+            href={Astro.locals.translatePath(
+              `/app/company/product-types/${productTypeId}/duplicate`,
+            )}
+            class={buttonVariants({ variant: "outline", size: "sm" })}
+            data-astro-prefetch="false"
+          >
+            <Copy className="w-4 h-4 mr-2" />
+            {t("productTypes.duplicate")}
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="py-4" transition:name="form">
+      <ProductTypeForm
+        serverErrors={formResult?.fieldErrors}
+        productType={productType}
+        client:only
+      />
+    </div>
+  </div>
+</App>

@@ -1,0 +1,27 @@
+---
+import { db, schema } from "@/lib/db";
+import { createId } from "@/lib/id";
+
+const { auth } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const [buy] = await db
+  .insert(schema.buy)
+  .values({
+    date: new Date().toISOString(),
+    description: "",
+    id: createId("buy"),
+    userId: session.user.userId,
+    timeZone: "",
+  })
+  .returning();
+
+return Astro.redirect(
+  Astro.locals.translatePath(`/app/company/buys?id=${buy.id}`),
+);
+---

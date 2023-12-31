@@ -1,5 +1,5 @@
 ---
-import { BadgePlus } from "lucide-react";
+import { Plus, ShoppingBag, Shirt, Palette, DollarSign } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,23 +15,47 @@ if (!session) {
 }
 ---
 
-<InsertDataDialog title={t("insertmodal.title")} client:idle>
+<InsertDataDialog title={t("insertmodal.title")} client:only>
   <div class="space-y-2">
     <a
-      href={Astro.locals.translatePath("/app/earnings/new")}
-      class={cn(buttonVariants(), "w-full")}
-      data-astro-prefetch="false"
+      href={Astro.locals.translatePath("/app/product-types/new")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
     >
-      <BadgePlus className="w-4 h-4 mr-2" />
-      {t("insertmodal.earnings")}
+      <Shirt className="w-4 h-4 mr-4" />
+      {t("insertmodal.productTypes")}
     </a>
     <a
-      href={Astro.locals.translatePath("/app/expenses/new")}
-      class={cn(buttonVariants(), "w-full")}
-      data-astro-prefetch="false"
+      href={Astro.locals.translatePath("/app/product-colors")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
     >
-      <BadgePlus className="w-4 h-4 mr-2" />
-      {t("insertmodal.expenses")}
+      <Palette className="w-4 h-4 mr-4" />
+      {t("insertmodal.productColors")}
+    </a>
+    <a
+      href={Astro.locals.translatePath("/app/sells/new")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
+    >
+      <DollarSign className="w-4 h-4 mr-4" />
+      {t("insertmodal.sell")}
+    </a>
+    <a
+      href={Astro.locals.translatePath("/app/buys/new")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
+    >
+      <ShoppingBag className="w-4 h-4 mr-4" />
+      {t("insertmodal.buy")}
     </a>
   </div>
 </InsertDataDialog>
