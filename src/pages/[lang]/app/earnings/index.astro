@@ -141,7 +141,7 @@ const chartKeys = [{ key: t("income"), color: "#22c55e" }];
     {
       !!orderedData.length && (
         <div class="h-80 mt-8">
-          <AreaChart data={chartData} keys={chartKeys} client:idle />
+          <AreaChart data={chartData} keys={chartKeys} client:load />
         </div>
       )
     }

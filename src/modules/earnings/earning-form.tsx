@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 
 import { useClientTranslations } from "@/lib/i18n/utils";
 import type { Earning, EarningCategory } from "@/lib/db/schema";
-import { sanitize } from "@/lib/sanitize";
+import { sanitize } from "@/lib/utils";
 
 export const earningForm = createForm({
   amount: z.preprocess((v) => Number(String(v).replace(/[^0-9]/g, "")), z.number().min(1).max(9999999)),

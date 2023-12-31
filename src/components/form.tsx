@@ -17,9 +17,11 @@ import {
 	validateForm,
 	formNameInputProps,
 } from "simple:form";
-import { Input as InputBase, type InputProps as InputBaseProps, inputClasses } from '@/components/ui/input'
-import { cn } from "@/lib/utils";
-import { defaultLang, type Lang } from "@/lib/i18n/ui";
+import { Input as InputBase, type InputProps as InputBaseProps, inputClasses } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
+import { cn, formatNumber } from "@/lib/utils";
+import type { Lang } from "@/lib/i18n/ui";
 import { CircleDashed, Medal } from "lucide-react";
 import { useClientTranslations } from "@/lib/i18n/utils";
 
@@ -72,7 +74,6 @@ export function Form({
 				{...formProps}
 				method="POST"
 				onSubmit={async (e) => {
-					e.preventDefault();
 					const formData = new FormData(e.currentTarget);
 					formContext.set((formState) => ({
 						...formState,
@@ -140,16 +141,6 @@ export function CurrencyInput({ defaultValue, ...inputProps }: CurrencyInputProp
 
 	const { hasErroredOnce, validationErrors, validator } = fieldState;
 
-	const numberFormat = new Intl.NumberFormat(typeof window === 'undefined' ? defaultLang : document.documentElement.lang, {
-		style: "currency",
-		currency: "BRL",
-		maximumFractionDigits: 0,
-	});
-
-	function formatNumber(value: string) {
-		return numberFormat.format(Number(value.replaceAll(/\D/g, "")));
-	}
-
 	return (
 		<>
 			<InputBase
@@ -159,7 +150,7 @@ export function CurrencyInput({ defaultValue, ...inputProps }: CurrencyInputProp
 					formContext.validateField(inputProps.name, value, validator);
 				}}
 				onChange={async (e) => {
-					e.target.value = formatNumber(e.target.value);
+					e.target.value = formatNumber(e.target.value.replace(/[^0-9]/g, ''));
 					const value = e.target.value;
 					if (!hasErroredOnce) return;
 					formContext.validateField(inputProps.name, value, validator);
@@ -177,13 +168,80 @@ export function CurrencyInput({ defaultValue, ...inputProps }: CurrencyInputProp
 
 type SelectProps = ComponentProps<"select"> & { name: string; options: { name: string; id: string }[] };
 export function Select({ className, options, ...selectProps }: SelectProps) {
+	const formContext = useFormContext();
+	const fieldState = formContext.value.fields[selectProps.name];
+	if (!fieldState) {
+		throw new Error(
+			`Input "${selectProps.name}" not found in form. Did you use the <Form> component?`,
+		);
+	}
+
+	const { hasErroredOnce, validationErrors, validator } = fieldState;
+
 	return (
-		<select className={cn(inputClasses, className)} {...selectProps}>
-			{options.map(({ name, id }) => (
-				<option key={id} value={id}>{name}</option>
+		<>
+			<select
+				className={cn(inputClasses, className)}
+				onBlur={async (e) => {
+					const value = e.target.value;
+					if (value === "") return;
+					formContext.validateField(selectProps.name, value, validator);
+				}}
+				onChange={async (e) => {
+					const value = e.target.value;
+					if (!hasErroredOnce) return;
+					formContext.validateField(selectProps.name, value, validator);
+				}}
+				{...selectProps}
+			>
+				{options.map(({ name, id }) => (
+					<option key={id} value={id}>{name}</option>
+				))}
+			</select>
+
+			{validationErrors?.map((e) => (
+				<p className="text-destructive text-sm font-medium mt-1" key={e}>{e}</p>
 			))}
-		</select>
-	)
+		</>
+	);
+}
+
+type RadioGroupProps = ComponentProps<typeof RadioGroupBase> & { name: string; options: { name: React.ReactNode; id: string }[]; defaultValue?: string; };
+export function RadioGroup({ className, options, ...radioGroupProps }: RadioGroupProps) {
+	const formContext = useFormContext();
+	const fieldState = formContext.value.fields[radioGroupProps.name];
+	if (!fieldState) {
+		throw new Error(
+			`Input "${radioGroupProps.name}" not found in form. Did you use the <Form> component?`,
+		);
+	}
+
+	const { hasErroredOnce, validationErrors, validator } = fieldState;
+
+	return (
+		<>
+			<RadioGroupBase
+				onValueChange={async (value) => {
+					if (!hasErroredOnce) return;
+					formContext.validateField(radioGroupProps.name, value, validator);
+				}}
+				{...radioGroupProps}
+			>
+				{
+					options.map(({ name, id }) => (
+						<div className="flex items-center space-x-2" key={id}>
+							<RadioGroupItem value={id} id={id} />
+							<Label htmlFor={id}>{name}</Label>
+						</div>
+					))
+				}
+			</RadioGroupBase>
+
+			{validationErrors?.map((e) => (
+				<p className="text-destructive text-sm font-medium mt-1" key={e}>{e}</p>
+			))}
+		</>
+	);
 }
 
 type SavingProps = ComponentProps<"p">;
@@ -191,7 +249,7 @@ export function Saving({ className, ...props }: SavingProps) {
 	const t = useClientTranslations();
 	const { value } = useFormContext();
 
-	return value.isSubmitPending && !value.hasFieldErrors
+	return value.submitStatus === 'submitting'
 		? (
 			<p className={cn("flex items-center font-semibold", className)} {...props}>
 				<CircleDashed className="w-4 h-4 animate-spin mr-2" />

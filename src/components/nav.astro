@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { UserMenu } from "@/components/user-menu";
 import LanguagePicker from "@/components/language-picker";
 import { buttonVariants } from "@/components/ui/button";
+import { ModeToggle } from "./mode-toggle";
 
 const { auth, t, translatePath } = Astro.locals;
 
@@ -55,11 +56,12 @@ const submenuNav = [
           })
         }
         <div class="flex items-center">
+          <div class="pr-4"><ModeToggle client:load /></div>
           <div class="pr-4"><LanguagePicker /></div>
           {
             session && (
               <UserMenu
-                client:idle
+                client:load
                 avatarUrl={session.user.avatarUrl}
                 name={session.user.displayName || session.user.googleSub}
               />

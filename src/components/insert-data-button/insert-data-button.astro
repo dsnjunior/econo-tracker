@@ -1,5 +1,5 @@
 ---
-import { BadgePlus } from "lucide-react";
+import { BadgePlus, BadgeMinus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,22 +15,26 @@ if (!session) {
 }
 ---
 
-<InsertDataDialog title={t("insertmodal.title")} client:idle>
+<InsertDataDialog title={t("insertmodal.title")} client:load>
   <div class="space-y-2">
     <a
       href={Astro.locals.translatePath("/app/earnings/new")}
-      class={cn(buttonVariants(), "w-full")}
-      data-astro-prefetch="false"
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
     >
-      <BadgePlus className="w-4 h-4 mr-2" />
+      <BadgePlus className="w-4 h-4 mr-4" />
       {t("insertmodal.earnings")}
     </a>
     <a
       href={Astro.locals.translatePath("/app/expenses/new")}
-      class={cn(buttonVariants(), "w-full")}
-      data-astro-prefetch="false"
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
     >
-      <BadgePlus className="w-4 h-4 mr-2" />
+      <BadgeMinus className="w-4 h-4 mr-4" />
       {t("insertmodal.expenses")}
     </a>
   </div>

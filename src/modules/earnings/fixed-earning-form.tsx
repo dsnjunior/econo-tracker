@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 import { useClientTranslations } from "@/lib/i18n/utils";
-import type { FixedExpense, ExpenseCategory } from "@/lib/db/schema";
-import { sanitize } from "@/lib/sanitize";
+import type { FixedEarning, EarningCategory } from "@/lib/db/schema";
+import { sanitize } from "@/lib/utils";
 
-export const fixedExpenseForm = createForm({
+export const fixedEarningForm = createForm({
   amount: z.preprocess((v) => Number(String(v).replace(/[^0-9]/g, "")), z.number().min(1).max(9999999)),
   description: z.string().transform(sanitize),
   categoryId: z.string().transform(sanitize),
@@ -20,58 +20,58 @@ export const fixedExpenseForm = createForm({
   timeZone: z.string().transform(sanitize)
 });
 
-export function FixedExpenseForm({
+export function FixedEarningForm({
   serverErrors,
-  fixedExpense,
+  fixedEarning,
   categories
-}: { serverErrors?: FieldErrors<typeof fixedExpenseForm>; fixedExpense: FixedExpense; categories: ExpenseCategory[] }) {
+}: { serverErrors?: FieldErrors<typeof fixedEarningForm>; fixedEarning: FixedEarning; categories: EarningCategory[] }) {
   const t = useClientTranslations();
 
   return (
     <Form
       className="flex flex-col gap-4 items-start"
       fieldErrors={serverErrors}
-      validator={fixedExpenseForm.validator}
-      name="fixedExpenseForm"
+      validator={fixedEarningForm.validator}
+      name="fixedEarningForm"
     >
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.amount")}</span>
-        <CurrencyInput {...fixedExpenseForm.inputProps.amount} defaultValue={fixedExpense.amount} />
+        <span className="mb-1 block">{t("earnings.amount")}</span>
+        <CurrencyInput {...fixedEarningForm.inputProps.amount} defaultValue={fixedEarning.amount} />
       </Label>
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.description")}</span>
-        <Input {...fixedExpenseForm.inputProps.description} defaultValue={fixedExpense.description} />
+        <span className="mb-1 block">{t("earnings.description")}</span>
+        <Input {...fixedEarningForm.inputProps.description} defaultValue={fixedEarning.description} />
       </Label>
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.category")}</span>
-        <Select {...fixedExpenseForm.inputProps.categoryId} options={categories} defaultValue={fixedExpense.categoryId ?? undefined} />
+        <span className="mb-1 block">{t("earnings.category")}</span>
+        <Select {...fixedEarningForm.inputProps.categoryId} options={categories} defaultValue={fixedEarning.categoryId ?? undefined} />
       </Label>
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.startDate")}</span>
+        <span className="mb-1 block">{t("earnings.startDate")}</span>
         <Input
-          {...fixedExpenseForm.inputProps.startDate}
-          defaultValue={new Date(fixedExpense.startDate).toISOString().replace("T00:00:00.000Z", "")}
+          {...fixedEarningForm.inputProps.startDate}
+          defaultValue={new Date(fixedEarning.startDate).toISOString().replace("T00:00:00.000Z", "")}
           type="date"
         />
       </Label>
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.dueDay")}</span>
+        <span className="mb-1 block">{t("earnings.dueDay")}</span>
         <Input
-          {...fixedExpenseForm.inputProps.dueDay}
-          defaultValue={fixedExpense.dueDay}
+          {...fixedEarningForm.inputProps.dueDay}
+          defaultValue={fixedEarning.dueDay}
           type="number"
         />
       </Label>
       <Label className="block w-full">
-        <span className="mb-1 block">{t("expenses.endDate")}</span>
+        <span className="mb-1 block">{t("earnings.endDate")}</span>
         <Input
-          {...fixedExpenseForm.inputProps.endDate}
-          defaultValue={fixedExpense.endDate ? new Date(fixedExpense.endDate).toISOString().replace("T00:00:00.000Z", "") : undefined}
+          {...fixedEarningForm.inputProps.endDate}
+          defaultValue={fixedEarning.endDate ? new Date(fixedEarning.endDate).toISOString().replace("T00:00:00.000Z", "") : undefined}
           type="date"
         />
       </Label>
       <Input
-        {...fixedExpenseForm.inputProps.timeZone}
+        {...fixedEarningForm.inputProps.timeZone}
         type="hidden"
         defaultValue={Intl.DateTimeFormat().resolvedOptions().timeZone}
       />

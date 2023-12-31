@@ -4,7 +4,7 @@ import { ArrowLeft, Copy, Trash } from "lucide-react";
 
 import App from "@/layouts/app.astro";
 import { Heading } from "@/components/ui/heading";
-import { ExpenseForm, expenseForm } from "@/components/forms/expense-form";
+import { ExpenseForm, expenseForm } from "@/modules/expenses/expense-form";
 import { Success } from "@/components/form";
 import { buttonVariants } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -111,7 +111,7 @@ const categories = await db.query.expenseCategory.findMany({
         </a>
       </div>
     </div>
-    <div class="py-4" transition:name="form">
+    <div class="py-4">
       {
         !!formResult?.data && (
           <Success lang={Astro.locals.lang} className="mb-4" />

@@ -214,7 +214,7 @@ const chartKeys = [
     {
       !!orderedData.length && (
         <div class="h-80 mt-8">
-          <BarChart data={chartData} keys={chartKeys} client:idle />
+          <BarChart data={chartData} keys={chartKeys} client:load />
         </div>
       )
     }

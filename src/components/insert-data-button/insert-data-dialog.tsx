@@ -1,29 +1,32 @@
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import React from "react";
+import { Plus } from "lucide-react";
 
+import { useMediaQuery } from "@/lib/utils";
+
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 interface InsertDataDialogProps {
   children: React.ReactNode;
   title: string;
 }
 
-export const InsertDataDialog: React.FC<InsertDataDialogProps> = ({ children, title }) => (
-  <Dialog>
-    <DialogTrigger asChild><Button>{title}</Button></DialogTrigger>
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>{title}</DialogTitle>
+export const InsertDataDialog: React.FC<InsertDataDialogProps> = ({ children, title }) => {
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [open, setOpen] = React.useState(false);
 
-        <div className="pt-4">
-          {children}
-        </div>
-      </DialogHeader>
-    </DialogContent>
-  </Dialog>
-)
+  return (
+    <>
+      {isDesktop
+        ? <Button onClick={() => setOpen(true)}>{title}</Button>
+        : (
+          <Button className="fixed bottom-3 right-3 z-10" size="icon" onClick={() => setOpen(true)}>
+            <Plus className="w-6 h-6 shrink-0" />
+            <span className="sr-only">{title}</span>
+          </Button>
+        )
+      }
+      <Modal title={title} open={open} onClose={() => setOpen(false)}>{children}</Modal>
+    </>
+  );
+}

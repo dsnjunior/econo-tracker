@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import {
   FixedExpenseForm,
   fixedExpenseForm,
-} from "@/components/forms/fixed-expense-form";
+} from "@/modules/expenses/fixed-expense-form";
 import { Success } from "@/components/form";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -167,7 +167,7 @@ const categories = await db.query.expenseCategory.findMany({
         </a>
       </div>
     </div>
-    <div class="py-4" transition:name="form">
+    <div class="py-4">
       {
         !!formResult?.data && (
           <Success lang={Astro.locals.lang} className="mb-4" />
