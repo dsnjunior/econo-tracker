@@ -1,1 +1,1 @@
-export { default } from './language-picker.astro'
+export { default } from "./language-picker.astro";

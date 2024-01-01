@@ -1,1 +1,1 @@
-export { default } from './insert-data-button.astro'
+export { default } from "./insert-data-button.astro";

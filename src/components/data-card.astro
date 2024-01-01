@@ -43,7 +43,10 @@ const { data } = Astro.props;
       {data.description}
     </CardTitle>
     <div>
-      <Badge style={{ backgroundColor: data.category?.color }}>
+      <Badge
+        style={{ backgroundColor: data.category?.color }}
+        className="text-white"
+      >
         {data.category?.name}
       </Badge>
     </div>
