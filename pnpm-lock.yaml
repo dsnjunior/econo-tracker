@@ -92,6 +92,9 @@ dependencies:
   simple-stack-form:
     specifier: ^0.1.5
     version: 0.1.5(astro@4.0.8)(zod@3.22.4)
+  simple-stack-stream:
+    specifier: ^0.0.3
+    version: 0.0.3(astro@4.0.8)
   tailwind-merge:
     specifier: ^2.2.0
     version: 2.2.0
@@ -7506,6 +7509,12 @@ packages:
     hasBin: true
     dev: false
 
+  /nanoid@5.0.4:
+    resolution: {integrity: sha512-vAjmBf13gsmhXSgBrtIclinISzFFy22WwCYoyilZlsrRXNIHSwgFQ1bEdjRwMT3aoadeIF6HMuDRlOxzfXV8ig==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+    dev: false
+
   /ncp@2.0.0:
     resolution: {integrity: sha512-zIdGUrPRFTUELUvr3Gmc7KZ2Sw/h1PiVM0Af/oHB6zgnV1ikqSfRk+TOufi79aHYCW3NiOXmr1BP5nWbzojLaA==}
     hasBin: true
@@ -8837,6 +8846,15 @@ packages:
       just-map-object: 2.3.0
       kleur: 4.1.5
       zod: 3.22.4
+    dev: false
+
+  /simple-stack-stream@0.0.3(astro@4.0.8):
+    resolution: {integrity: sha512-bydRsh/f/2Sed4TusLCnLSjil9Xi4/2UCTfE/vgJp2wV9tnr0fmK+ff8ZbNwnWpF6F8K0gfx7jClUxwJoGbSDg==}
+    peerDependencies:
+      astro: ^3.6.0 || ^4.0.0
+    dependencies:
+      astro: 4.0.8(typescript@5.3.3)
+      nanoid: 5.0.4
     dev: false
 
   /simple-swizzle@0.2.2:
