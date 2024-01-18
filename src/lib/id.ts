@@ -11,6 +11,9 @@ export const idContext = {
 	expenseCategory: "exp_cat",
 	fixedExpense: "fexp",
 	fixedExpenseRegister: "fexpr",
+	creditCard: "cc",
+	creditCardLimit: "ccl",
+	creditCardExpense: "cce",
 } as const;
 
 export function createId(context: keyof typeof idContext) {

@@ -1,3 +1,4 @@
+import creditCardsI18n from "@/modules/credit-cards/i18n";
 import earningsI18n from "@/modules/earnings/i18n";
 import expensesI18n from "@/modules/expenses/i18n";
 
@@ -13,6 +14,10 @@ export const defaultLang = "en";
 export const ui = {
 	en: {
 		back: "Back",
+		delete: "Delete",
+		confirm: "Confirm",
+		cancel: "Cancel",
+		edit: "Edit",
 		save: "Save",
 		saving: "Saving...",
 		saved: "Saved!",
@@ -46,9 +51,14 @@ export const ui = {
 		"modetoggler.system": "System",
 		...earningsI18n.en,
 		...expensesI18n.en,
+		...creditCardsI18n.en,
 	},
 	"pt-br": {
 		back: "Voltar",
+		delete: "Deletar",
+		confirm: "Confirmar",
+		cancel: "Cancelar",
+		edit: "Editar",
 		save: "Salvar",
 		saving: "Salvando...",
 		saved: "Salvo!",
@@ -82,5 +92,6 @@ export const ui = {
 		"modetoggler.system": "Sistema",
 		...earningsI18n["pt-br"],
 		...expensesI18n["pt-br"],
+		...creditCardsI18n["pt-br"],
 	},
 } as const;

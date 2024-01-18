@@ -14,7 +14,7 @@ import type { Lang } from "@/lib/i18n/ui";
 import { useClientTranslations } from "@/lib/i18n/utils";
 import { cn, formatNumber } from "@/lib/utils";
 import { CircleDashed, Medal } from "lucide-react";
-import {
+import React, {
 	type ComponentProps,
 	createContext,
 	useContext,
@@ -92,6 +92,7 @@ export function Form({
 						return formContext.trackAstroSubmitStatus();
 					}
 
+					e.preventDefault();
 					e.stopPropagation();
 					formContext.setValidationErrors(parsed.fieldErrors);
 				}}
@@ -104,7 +105,7 @@ export function Form({
 }
 
 type InputProps = InputBaseProps & { name: string };
-export function Input(inputProps: InputProps) {
+export function Input({ onBlur, onChange, ...inputProps }: InputProps) {
 	const formContext = useFormContext();
 	const fieldState = formContext.value.fields[inputProps.name];
 	if (!fieldState) {
@@ -118,11 +119,13 @@ export function Input(inputProps: InputProps) {
 		<>
 			<InputBase
 				onBlur={async (e) => {
+					onBlur?.(e);
 					const value = e.target.value;
 					if (value === "") return;
 					formContext.validateField(inputProps.name, value, validator);
 				}}
 				onChange={async (e) => {
+					onChange?.(e);
 					if (!hasErroredOnce) return;
 					const value = e.target.value;
 					formContext.validateField(inputProps.name, value, validator);
@@ -141,6 +144,8 @@ export function Input(inputProps: InputProps) {
 type CurrencyInputProps = InputProps;
 export function CurrencyInput({
 	defaultValue,
+	onBlur,
+	onChange,
 	...inputProps
 }: CurrencyInputProps) {
 	const formContext = useFormContext();
@@ -157,11 +162,13 @@ export function CurrencyInput({
 		<>
 			<InputBase
 				onBlur={async (e) => {
+					onBlur?.(e);
 					const value = e.target.value;
 					if (value === "") return;
 					formContext.validateField(inputProps.name, value, validator);
 				}}
 				onChange={async (e) => {
+					onChange?.(e);
 					e.target.value = formatNumber(e.target.value.replace(/[^0-9]/g, ""));
 					const value = e.target.value;
 					if (!hasErroredOnce) return;
@@ -184,7 +191,7 @@ export function CurrencyInput({
 
 type SelectProps = ComponentProps<"select"> & {
 	name: string;
-	options: { name: string; id: string }[];
+	options: { name: React.ReactNode; id: string }[];
 };
 export function Select({ className, options, ...selectProps }: SelectProps) {
 	const formContext = useFormContext();

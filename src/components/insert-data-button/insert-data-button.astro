@@ -1,5 +1,5 @@
 ---
-import { BadgePlus, BadgeMinus } from "lucide-react";
+import { BadgePlus, BadgeMinus, CreditCard } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -36,6 +36,26 @@ if (!session) {
     >
       <BadgeMinus className="w-4 h-4 mr-4" />
       {t("insertmodal.expenses")}
+    </a>
+    <a
+      href={Astro.locals.translatePath("/app/credit-cards/new")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
+    >
+      <CreditCard className="w-4 h-4 mr-4" />
+      {t("insertmodal.creditCard")}
+    </a>
+    <a
+      href={Astro.locals.translatePath("/app/credit-cards/new-expense")}
+      class={cn(
+        buttonVariants({ variant: "outline" }),
+        "w-full flex items-center justify-start",
+      )}
+    >
+      <CreditCard className="w-4 h-4 mr-4" />
+      {t("insertmodal.creditCardExpense")}
     </a>
   </div>
 </InsertDataDialog>

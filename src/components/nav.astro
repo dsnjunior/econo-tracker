@@ -15,6 +15,7 @@ const submenuNav = [
   { title: t("nav.home"), path: translatePath("/app") },
   { title: t("nav.earnings"), path: translatePath("/app/earnings") },
   { title: t("nav.expenses"), path: translatePath("/app/expenses") },
+  { title: t("nav.creditCards"), path: translatePath("/app/credit-cards") },
 ];
 ---
 
@@ -47,7 +48,7 @@ const submenuNav = [
         {
           navigation.map((item) => {
             return (
-              <li>
+              <li class="whitespace-nowrap">
                 <a href={item.path} class={buttonVariants({ variant: "link" })}>
                   {item.title}
                 </a>
@@ -56,7 +57,7 @@ const submenuNav = [
           })
         }
         <div class="flex items-center">
-          <div class="pr-4"><ModeToggle client:load /></div>
+          <div class="pr-4"><ModeToggle client:only /></div>
           <div class="pr-4"><LanguagePicker /></div>
           {
             session && (
@@ -79,7 +80,7 @@ const submenuNav = [
         submenuNav.map((item) => {
           return (
             <li
-              class={`py-1 ${
+              class={`py-1 whitespace-nowrap ${
                 Astro.url.pathname === item.path
                   ? "border-b-2 border-primary"
                   : ""

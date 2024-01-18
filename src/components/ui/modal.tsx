@@ -16,7 +16,7 @@ interface InsertDataDialogProps {
 	children: React.ReactNode;
 	title: string;
 	open: boolean;
-	onClose: () => void;
+	onClose?: () => void;
 }
 
 export const Modal: React.FC<InsertDataDialogProps> = ({
@@ -30,23 +30,26 @@ export const Modal: React.FC<InsertDataDialogProps> = ({
 	if (isDesktop) {
 		return (
 			<Dialog open={open} onOpenChange={onClose}>
-				<DialogContent>
-					<DialogHeader>
+				<DialogContent closeable={!!onClose} className="px-0">
+					<DialogHeader className="px-4">
 						<DialogTitle>{title}</DialogTitle>
 					</DialogHeader>
-					<div className="pt-4">{children}</div>
+					<div className="mt-4 max-h-[calc(var(--vh)-220px)] overflow-auto">
+						<div className="px-4 py-1">{children}</div>
+					</div>
 				</DialogContent>
 			</Dialog>
 		);
 	}
-
 	return (
-		<Drawer open={open} onClose={onClose}>
+		<Drawer open={open} onClose={onClose} dismissible={!!onClose}>
 			<DrawerContent>
 				<DrawerHeader>
 					<DrawerTitle>{title}</DrawerTitle>
 				</DrawerHeader>
-				<div className="p-4 pb-8">{children}</div>
+				<div className="mt-4 max-h-[calc(var(--vh)-120px)] overflow-auto">
+					<div className="px-4 pt-1 pb-8">{children}</div>
+				</div>
 			</DrawerContent>
 		</Drawer>
 	);

@@ -1,0 +1,201 @@
+---
+import { eq, and } from "drizzle-orm";
+
+import { db, schema } from "@/lib/db";
+
+import App from "@/layouts/app.astro";
+import InsertDataButton from "@/components/insert-data-button";
+import { Heading } from "@/components/ui/heading";
+import { CreditCardEdit, editForm } from "@/modules/credit-cards/edit";
+import { createId } from "@/lib/id";
+import { formatNumber } from "@/lib/utils";
+import { ExpensesCarousel } from "@/modules/credit-cards/expenses-carousel";
+import { Options } from "@/modules/credit-cards/options";
+import { deleteForm } from "@/modules/credit-cards/delete";
+import { expenseForm } from "@/modules/credit-cards/add-expense";
+
+const { auth, t, form, lang } = Astro.locals;
+
+const session = await auth.validate();
+
+if (!session) {
+  return Astro.redirect(Astro.locals.translatePath("/"));
+}
+
+const formResult = await form.getDataByName("editForm", editForm);
+if (formResult?.data) {
+  const { color, dueDay, limit, name, timeZone, id } = formResult.data;
+
+  await db
+    .update(schema.creditCard)
+    .set({
+      color,
+      dueDay,
+      name,
+    })
+    .where(
+      and(
+        eq(schema.creditCard.id, id),
+        eq(schema.creditCard.userId, session.user.userId),
+      ),
+    );
+
+  const existingLimit = await db.query.creditCardLimit.findFirst({
+    where: and(
+      eq(schema.creditCardLimit.creditCardId, id),
+      eq(schema.creditCardLimit.limit, limit),
+    ),
+  });
+
+  if (!existingLimit) {
+    await db.insert(schema.creditCardLimit).values({
+      creditCardId: id,
+      limit,
+      timeZone,
+      date: new Date().toISOString(),
+      userId: session.user.userId,
+      id: createId("creditCardLimit"),
+    });
+  }
+
+  return Astro.redirect(Astro.locals.translatePath("/app/credit-cards"));
+}
+
+const deleteFormResult = await form.getDataByName("deleteForm", deleteForm);
+if (deleteFormResult?.data) {
+  const { id } = deleteFormResult.data;
+
+  await db
+    .delete(schema.creditCardLimit)
+    .where(
+      and(
+        eq(schema.creditCardLimit.creditCardId, id),
+        eq(schema.creditCardLimit.userId, session.user.userId),
+      ),
+    );
+
+  await db
+    .delete(schema.creditCard)
+    .where(
+      and(
+        eq(schema.creditCard.id, id),
+        eq(schema.creditCard.userId, session.user.userId),
+      ),
+    );
+
+  return Astro.redirect(Astro.locals.translatePath("/app/credit-cards"));
+}
+
+const expenseFormResult = await form.getDataByName("expenseForm", expenseForm);
+if (expenseFormResult?.data) {
+  const { creditCardId, date, description, amount, timeZone } =
+    expenseFormResult.data;
+
+  const creditCardIsFromCurrentUser = await db.query.creditCard.findFirst({
+    where: and(
+      eq(schema.creditCard.userId, session.user.userId),
+      eq(schema.creditCard.id, creditCardId),
+    ),
+    columns: {
+      id: true,
+    },
+  });
+
+  if (!creditCardIsFromCurrentUser) {
+    return Astro.redirect(Astro.locals.translatePath("/app/credit-cards"));
+  }
+
+  await db.insert(schema.creditCardExpense).values({
+    creditCardId,
+    date,
+    description,
+    amount,
+    timeZone,
+    userId: session.user.userId,
+    id: createId("creditCardExpense"),
+  });
+}
+
+const creditCards = await db.query.creditCard.findMany({
+  where: eq(schema.creditCard.userId, session.user.userId),
+  with: {
+    limits: {
+      orderBy: (limits, { desc }) => [desc(limits.date)],
+      limit: 1,
+    },
+    expenses: true,
+  },
+});
+
+if (!creditCards.length) {
+  return Astro.redirect(Astro.locals.translatePath("/app/credit-cards/new"));
+}
+
+const edit = Astro.url.searchParams.get("edit");
+const toEdit = creditCards.find((cc) => cc.id === edit);
+---
+
+<App title={t("pagetitle.creditCards")}>
+  <div class="px-4 py-8 container max-w-2xl">
+    <div class="sm:flex items-center">
+      <Heading
+        title={t("pagetitle.creditCards")}
+        description={t("pagedescription.creditCards")}
+        className="mb-8 sm:mb-0 sm:pr-2 sm:mr-auto"
+      />
+      <InsertDataButton />
+    </div>
+
+    <div class="py-6 grid gap-4">
+      {
+        creditCards.map((cc) => (
+          <section class="p-4 pl-6 relative rounded border border-border">
+            <div
+              class="absolute w-2 left-0 top-0 bottom-0 rounded-l"
+              style={{ background: cc.color }}
+            />
+            <div class="grid gap-y-2 md:grid-cols-[200px,1fr]">
+              <div class="flex items-center">
+                <div>
+                  <h1 class="font-semibold text-lg truncate">{cc.name}</h1>
+                  <div class="flex space-x-4 text-sm md:grid md:space-x-0">
+                    <p>
+                      {t("creditCards.limit")}:{" "}
+                      {formatNumber(`${cc.limits[0]?.limit ?? 0}`, lang)}
+                    </p>
+                    <p>
+                      {t("creditCards.dueDay")}: {cc.dueDay}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center px-4">
+                <ExpensesCarousel
+                  expenses={cc.expenses}
+                  lang={lang}
+                  client:load
+                />
+              </div>
+            </div>
+            <div class="absolute top-2 right-2">
+              <Options
+                creditCard={cc}
+                open={
+                  !!formResult?.fieldErrors /* will have problems when multiple cards */
+                }
+                mode={
+                  !!formResult?.fieldErrors
+                    ? "edit"
+                    : "menu" /* will have problems when multiple cards */
+                }
+                client:load
+              />
+            </div>
+          </section>
+        ))
+      }
+    </div>
+
+    {!!toEdit && <CreditCardEdit creditCard={toEdit} open client:load />}
+  </div>
+</App>

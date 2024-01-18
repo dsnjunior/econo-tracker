@@ -205,3 +205,80 @@ export const fixedExpenseRelations = relations(
 		registers: many(fixedExpenseRegister),
 	}),
 );
+
+export const creditCard = pgTable("credit_card", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id),
+	name: text("name").notNull(),
+	color: text("color").notNull(),
+	dueDay: integer("due_day").notNull(),
+});
+
+export type CreditCard = typeof creditCard.$inferSelect;
+
+export const creditCardRelations = relations(creditCard, ({ many }) => ({
+	limits: many(creditCardLimit),
+	expenses: many(creditCardExpense),
+}));
+
+export type CreditCardWithLimits = CreditCard & {
+	limits: CreditCardLimit[];
+};
+
+export type CreditCardComplete = CreditCard & {
+	limits: CreditCardLimit[];
+	expenses: CreditCardExpense[];
+};
+
+export const creditCardLimit = pgTable("credit_card_limit", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id),
+	creditCardId: text("credit_card_id")
+		.notNull()
+		.references(() => creditCard.id),
+	limit: integer("limit").notNull(),
+	date: date("date").notNull(),
+	timeZone: varchar("time_zone").notNull(),
+});
+
+export type CreditCardLimit = typeof creditCardLimit.$inferSelect;
+
+export const creditCardLimitRelations = relations(
+	creditCardLimit,
+	({ one }) => ({
+		creditCard: one(creditCard, {
+			fields: [creditCardLimit.creditCardId],
+			references: [creditCard.id],
+		}),
+	}),
+);
+
+export const creditCardExpense = pgTable("credit_card_expense", {
+	id: text("id").primaryKey(),
+	userId: text("user_id")
+		.notNull()
+		.references(() => user.id),
+	creditCardId: text("credit_card_id")
+		.notNull()
+		.references(() => creditCard.id),
+	amount: integer("amount").notNull(),
+	description: text("description").notNull(),
+	date: date("date").notNull(),
+	timeZone: varchar("time_zone").notNull(),
+});
+
+export type CreditCardExpense = typeof creditCardExpense.$inferSelect;
+
+export const creditCardExpenseRelations = relations(
+	creditCardExpense,
+	({ one }) => ({
+		creditCard: one(creditCard, {
+			fields: [creditCardExpense.creditCardId],
+			references: [creditCard.id],
+		}),
+	}),
+);
